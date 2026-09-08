@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- A ingestão de desenvolvimento corre em claro no anfitrião do emulador. Só
+     este endereço é permitido, e só em desenvolvimento: em produção o SDK fala
+     por TLS como tudo o resto. -->
+<network-security-config>
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="true">10.0.2.2</domain>
+        <domain includeSubdomains="true">localhost</domain>
+    </domain-config>
+</network-security-config>

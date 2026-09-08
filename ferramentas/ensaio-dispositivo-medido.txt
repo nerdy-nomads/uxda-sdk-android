@@ -1,0 +1,16 @@
+
+[1m1. o sistema mata a aplicação a meio de uma tentativa[0m
+  [32mok[0m     aplicação abatida com force-stop, sem aviso nenhum
+  [32mok[0m     ficaram 9 eventos escritos em disco, que o processo já não tem como enviar
+  [32mok[0m     depois de reabrir, chegaram 11 eventos ao armazenamento
+
+[1m2. vinte e quatro horas sem rede, e o dia seguinte[0m
+  [32mok[0m     rede desligada no dispositivo
+  [32mok[0m     11 eventos em fila, com a rede em baixo
+  [32mok[0m     relógio do dispositivo adiantado 24 horas
+  [32mok[0m     rede de volta
+  [32mok[0m     a fila esvaziou-se sozinha: 12 eventos entregues depois do dia sem rede
+
+[1mresultado[0m
+  [32mok[0m     os dois ensaios passaram
+saida=0

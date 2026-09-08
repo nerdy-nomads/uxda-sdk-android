@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="20dp">
+
+        <TextView
+            android:id="@+id/titulo"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Pagar a encomenda"
+            android:textSize="22sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingTop="4dp"
+            android:paddingBottom="12dp"
+            android:text="Nenhum campo desta aplicação está instrumentado. O SDK captura sozinho." />
+
+        <EditText
+            android:id="@+id/nome"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Nome no cartão"
+            android:imeOptions="actionNext"
+            android:inputType="textPersonName" />
+
+        <EditText
+            android:id="@+id/cartao"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Número do cartão"
+            android:imeOptions="actionNext"
+            android:inputType="number" />
+
+        <EditText
+            android:id="@+id/validade"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Validade MM/AA"
+            android:imeOptions="actionDone"
+            android:inputType="text" />
+
+        <Button
+            android:id="@+id/pagar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:text="Pagar 12.400 Kz" />
+
+        <Button
+            android:id="@+id/entrar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Entrar na conta" />
+
+        <Button
+            android:id="@+id/falhar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Pedido que falha" />
+
+        <Button
+            android:id="@+id/compose"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Abrir o ecrã em Compose" />
+
+        <TextView
+            android:id="@+id/diagnostico"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:background="#14181D"
+            android:fontFamily="monospace"
+            android:padding="12dp"
+            android:textColor="#CFE3D8"
+            android:textSize="11sp"
+            android:text="a arrancar..." />
+    </LinearLayout>
+</ScrollView>

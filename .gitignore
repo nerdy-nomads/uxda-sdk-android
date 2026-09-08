@@ -1,8 +1,10 @@
+# O caminho do SDK é de cada máquina, e não do repositório.
+local.properties
+
 .gradle/
 build/
-local.properties
-captures/
-*.apk
-*.aab
+*/build/
 .idea/
-.DS_Store
+*.iml
+.kotlin/
+ferramentas/saida/

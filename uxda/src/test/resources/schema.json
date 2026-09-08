@@ -1,0 +1,36 @@
+{
+  "$comment": "Esquema canónico do evento capturado. Secção 6.1 do documento de requisitos, mais as três colunas que os ADR 0009, 0010 e 0011 obrigam. É a FONTE ÚNICA: o validador em Go e o validador em TypeScript são gerados daqui, e não escritos duas vezes. Dois validadores escritos à mão divergem, e o sintoma é o SDK considerar válido o que a ingestão recusa.",
+  "versao_protocolo": 1,
+  "compatibilidade_meses": 24,
+  "campos": [
+    { "nome": "event_id",            "tipo": "uuid",      "obrigatorio": true,  "nota": "Idempotência. A repetição é o funcionamento normal, porque o SDK reenvia" },
+    { "nome": "project_id",          "tipo": "uuid",      "obrigatorio": true,  "nota": "Identifica a aplicação e o ambiente. Chave de isolamento" },
+    { "nome": "organization_id",     "tipo": "uuid",      "obrigatorio": true,  "nota": "Para as vistas consolidadas" },
+    { "nome": "anonymous_id",        "tipo": "texto",     "obrigatorio": true,  "max": 128, "nota": "Gerado no dispositivo" },
+    { "nome": "user_id",             "tipo": "texto",     "obrigatorio": false, "max": 128, "nota": "Pseudonimizado, depois da autenticação. NUNCA um identificador direto" },
+    { "nome": "device_id",           "tipo": "texto",     "obrigatorio": true,  "max": 128 },
+    { "nome": "session_id",          "tipo": "texto",     "obrigatorio": true,  "max": 128, "nota": "Sessão técnica, não unidade de análise" },
+    { "nome": "event_type",          "tipo": "enum",      "obrigatorio": true,
+      "valores": ["ecra","toque","foco","tecla","desfoco","submissao","erro","recuo","plano_fundo","erro_rede","mensagem","personalizado"] },
+    { "nome": "screen_key",          "tipo": "texto",     "obrigatorio": true,  "max": 256 },
+    { "nome": "element_key",         "tipo": "texto",     "obrigatorio": false, "max": 512, "nota": "O tuplo de sinais do ADR 0003, serializado" },
+    { "nome": "occurred_at",         "tipo": "instante",  "obrigatorio": true,  "nota": "Hora do dispositivo. Nunca usada sozinha num cálculo" },
+    { "nome": "received_at",         "tipo": "instante",  "obrigatorio": false, "nota": "Preenchido pela ingestão, e recusado se vier do cliente" },
+    { "nome": "clock_offset_ms",     "tipo": "inteiro",   "obrigatorio": false, "min": -86400000, "max_valor": 86400000, "nota": "Desvio calculado. Fora de um dia é relógio partido" },
+    { "nome": "app_version",         "tipo": "texto",     "obrigatorio": true,  "max": 64 },
+    { "nome": "platform",            "tipo": "enum",      "obrigatorio": true,  "valores": ["web","android","ios","react_native","flutter"] },
+    { "nome": "identity_scope",      "tipo": "enum",      "obrigatorio": true,  "valores": ["aplicacao","organizacao"], "nota": "ADR 0011. Existe desde o primeiro evento, mesmo enquanto for sempre aplicacao" },
+    { "nome": "capture_level",       "tipo": "enum",      "obrigatorio": true,  "valores": ["essencial","padrao","detalhado"], "nota": "ADR 0010. Sem ele, dois períodos com amostragem diferente comparam-se sem ninguém saber" },
+    { "nome": "properties",          "tipo": "objeto",    "obrigatorio": false, "nota": "Definidas pelo cliente. NUNCA conteúdo de campos" },
+    { "nome": "message_key",         "tipo": "texto",     "obrigatorio": false, "max": 256 },
+    { "nome": "message_kind",        "tipo": "enum",      "obrigatorio": false, "valores": ["erro","aviso","sucesso","info"] },
+    { "nome": "message_text_masked", "tipo": "texto",     "obrigatorio": false, "max": 1024, "nota": "Só quando não há chave. Chega já mascarado do dispositivo" },
+    { "nome": "duration_ms",         "tipo": "inteiro",   "obrigatorio": false, "min": 0, "max_valor": 86400000 }
+  ],
+  "regras": [
+    { "codigo": "sem_conteudo",        "descricao": "Nenhum campo transporta conteúdo escrito pelo utilizador. As properties são validadas contra uma lista de chaves permitidas, e os valores só podem ser número, booleano ou texto curto sem dígitos longos." },
+    { "codigo": "mensagem_coerente",   "descricao": "Um evento de tipo mensagem tem de trazer message_key ou message_text_masked, e message_kind." },
+    { "codigo": "recebido_do_servidor","descricao": "received_at é preenchido pela ingestão. Se vier do cliente, é ignorado e o evento é aceite na mesma." },
+    { "codigo": "relogio_plausivel",   "descricao": "clock_offset_ms fora de mais ou menos um dia é relógio partido, e o evento é rejeitado com motivo." }
+  ]
+}

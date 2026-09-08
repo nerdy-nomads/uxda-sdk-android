@@ -1,0 +1,43 @@
+# O que corre em cada alteração ao SDK Android.
+#
+# A ordem não é acidental: os ensaios primeiro (incluem a bateria de fuga e a de
+# injeção de falhas), o empacotamento depois, e o orçamento no fim, que precisa das
+# duas variantes da aplicação de ensaio para poder medir o **acréscimo**.
+#
+# **O orçamento falha a compilação, e não avisa.** Um limite que só avisa é um
+# limite que se ultrapassa na terceira semana e ninguém dá por isso.
+name: SDK Android
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+jobs:
+  verificar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Ensaios
+        run: ./gradlew :uxda:testDebugUnitTest
+
+      - name: Empacotar
+        run: ./gradlew :uxda:assembleRelease
+
+      - name: Orçamento de tamanho
+        run: ./ferramentas/orcamento.sh
+
+      - name: Relatório dos ensaios
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ensaios
+          path: uxda/build/reports/tests/

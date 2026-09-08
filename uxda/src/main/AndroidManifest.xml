@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- O SDK só precisa de rede. Nada de localização, nada de contactos, nada
+         de armazenamento externo: uma permissão a mais é uma revisão de segurança
+         perdida, e o RNF-SDK-08 diz que a auditoria é condição de adoção. -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
+    <application>
+        <!-- É isto que faz a integração caber numa linha do manifesto de quem nos
+             instala: o sistema cria os provedores antes da aplicação arrancar. -->
+        <provider
+            android:name="io.uxda.sdk.UxdaProvider"
+            android:authorities="${applicationId}.uxda"
+            android:exported="false"
+            android:initOrder="100" />
+    </application>
+</manifest>
