@@ -15,16 +15,32 @@ import sys
 
 
 def centro(caminho: str, alvo: str) -> str:
+    """O centro do nó que casa com o alvo, **preferindo o que se pode tocar**.
+
+    A preferência não é um detalhe. Num ecrã de pagamento o título diz "Pagar a
+    encomenda" e o botão diz "Pagar 12.400 Kz": procurar "Pagar" e ficar com o
+    primeiro dava o título, e o guião tocava num texto a vida inteira sem nunca
+    carregar no botão. Passava, e não fazia nada.
+    """
     with open(caminho, encoding="utf-8", errors="replace") as f:
         xml = f.read()
+    reserva = ""
     for no in re.findall(r"<node[^>]*/?>", xml):
         campos = " ".join(re.findall(r'(?:text|content-desc|resource-id)="([^"]*)"', no))
-        if alvo.lower() in campos.lower():
-            b = re.search(r'bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"', no)
-            if b:
-                x1, y1, x2, y2 = map(int, b.groups())
-                return f"{(x1 + x2) // 2} {(y1 + y2) // 2}"
-    return ""
+        if alvo.lower() not in campos.lower():
+            continue
+        b = re.search(r'bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"', no)
+        if not b:
+            continue
+        x1, y1, x2, y2 = map(int, b.groups())
+        if x2 <= x1 or y2 <= y1:
+            continue
+        ponto = f"{(x1 + x2) // 2} {(y1 + y2) // 2}"
+        if 'clickable="true"' in no or 'focusable="true"' in no:
+            return ponto
+        if not reserva:
+            reserva = ponto
+    return reserva
 
 
 if __name__ == "__main__":

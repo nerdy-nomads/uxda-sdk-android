@@ -1,0 +1,17 @@
+ensaio de bateria, 60 minutos, 2026-09-08T17:55:29Z
+dispositivo: sdk_gphone64_x86_64, Android 16, 1 núcleo(s)
+
+                                  com SDK      sem SDK
+tempo de CPU (ms)                   94510        94230
+consumo modelado (mAh)            0.00342      0.00194
+diferença de CPU (ms)                280
+diferença em percentagem           +0.3%
+eventos capturados                   5808
+
+uid com SDK: 10235   uid sem SDK: 10234
+
+o ruído da própria medição, para se saber o que 0,3% vale:
+  a mesma variante sem SDK, em duas horas seguidas:  101 510 ms e 94 230 ms
+  variação entre corridas iguais                     7,7%
+  diferença entre as duas variantes                  0,3%
+  ou seja: o ruído é 25 vezes maior do que o efeito

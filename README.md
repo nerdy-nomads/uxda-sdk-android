@@ -118,13 +118,27 @@ aparelho de gama alta esconde tudo o que se queria ver.
 
 | O quê | Medido | Limite |
 |---|---|---|
-| Acréscimo ao APK da aplicação | **__TAMANHO__** | 300 KB (`RNF-SDK-03`) |
-| Fio principal, por evento capturado | **__FIO__** | 1 ms (`RNF-SDK-05`) |
-| Bateria, uma hora de uso com e sem SDK | **__BATERIA__** | não mensurável (`RNF-SDK-04`) |
-| Sobrevivência de identidades entre duas versões | **__SOBREVIVENCIA__** | - |
-| Ensaios | __ENSAIOS__, incluindo fuga de conteúdo e injeção de falhas | - |
+| Acréscimo ao APK da aplicação | **48 KB** | 300 KB (`RNF-SDK-03`) |
+| Fio principal, por evento capturado | **0,40 ms** | 1 ms (`RNF-SDK-05`) |
+| Bateria, uma hora de uso com e sem SDK | **+0,3% de CPU numa hora** | não mensurável (`RNF-SDK-04`) |
+| Sobrevivência de identidades entre duas versões | **100% (9 de 9)** | - |
+| Ensaios | 53, incluindo fuga de conteúdo e injeção de falhas | - |
 
-__NOTA_BATERIA__
+**O que 0,3% vale, e é a parte que interessa.** A mesma variante **sem** SDK, em
+duas horas seguidas do mesmo guião, gastou 101 510 ms e 94 230 ms de CPU: 7,7% de
+diferença entre corridas iguais. A diferença entre as duas variantes foi de 280 ms,
+0,3%. **O ruído da medição é vinte e cinco vezes maior do que o efeito**, e é essa
+comparação, e não a percentagem sozinha, que responde ao `RNF-SDK-04`.
+
+O consumo modelado por aplicação foi de 0,00342 mAh contra 0,00194 mAh na hora. Num
+emulador o medidor não é físico: o total do sistema vem a zero e estes valores saem
+do perfil de energia aplicado ao tempo de CPU, por isso são o mesmo número dito de
+outra maneira. **O que falta é um telemóvel a sério, com rádio e ecrã**, e isso é o
+cartão `20.2`.
+
+E os primeiros eventos custam mais do que a média: carregar classes, a primeira
+leitura da árvore e a primeira reflexão pagam-se uma vez. Sobre 8 eventos o fio
+principal deu 5,2 ms por evento; sobre 203, deu 0,40.
 
 ![A loja de ensaio, com o diagnóstico do SDK ao fundo](exemplo/ensaio-loja-android.png)
 

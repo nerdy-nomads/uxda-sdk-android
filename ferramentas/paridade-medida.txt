@@ -1,33 +1,44 @@
 
-[1mSequência de cada plataforma, nos últimos 6 minutos[0m
+Sequência de cada plataforma, nos últimos 4 minutos
 
-platform	sequencia
-android	ecra > toque > toque > erro > erro > foco > tecla > toque > desfoco > foco > tecla > submissao > desfoco > foco > toque > erro_rede > toque > recuo
-web	ecra > ecra > toque > submissao > erro > foco > erro > desfoco > foco > erro > desfoco > foco > desfoco > foco > toque > tecla > desfoco > foco > toque > tecla > toque > submissao > erro > desfoco > erro > foco > desfoco > toque > erro_rede > toque > ecra > recuo
+platform	primeiros_40	total
+android	ecra > toque > foco > tecla > toque > toque > desfoco > erro > foco > tecla > submissao > submissao > desfoco > toque > toque > erro_rede > toque > ecra > ecra > toque > personalizado > recuo > ecra > recuo > plano_fundo	25
+web	plano_fundo > ecra > ecra > foco > foco > desfoco > desfoco > toque > submissao > erro > foco > desfoco > toque > toque > erro_rede > toque > ecra > personalizado > recuo > plano_fundo > ecra > ecra > foco > toque > tecla > desfoco > toque > submissao > erro > foco > erro > desfoco > foco > desfoco > toque > toque > erro_rede > toque > ecra > personalizado	41
 
-[1mOs mesmos tipos, contados dos dois lados[0m
+Os mesmos tipos, contados dos dois lados
 
 event_type	web	android	nos_dois
 desfoco	6	2	sim
-ecra	3	1	sim
-erro	5	2	sim
-erro_rede	1	1	sim
-foco	6	3	sim
-recuo	1	1	sim
-submissao	2	1	sim
-tecla	2	2	sim
-toque	6	5	sim
+ecra	6	4	sim
+erro	3	1	sim
+erro_rede	2	1	sim
+foco	6	2	sim
+personalizado	2	1	sim
+plano_fundo	2	1	sim
+recuo	2	2	sim
+submissao	2	2	sim
+tecla	1	2	sim
+toque	9	7	sim
 
-[1mO contrato: os campos que cada plataforma preenche[0m
+O contrato: os campos que cada plataforma preenche
 
 platform	eventos	ecras	com_elemento	com_duracao	versoes	com_pseudonimo
-android	18	1	16	4	1	18
-web	32	2	28	8	1	32
+android	25	3	17	5	1	25
+web	41	2	29	9	1	41
 
-[1mHesitação medida nos campos, dos dois lados[0m
+Hesitação medida nos campos, dos dois lados
 A norma do RF-EST-04 manda a mediana e o p90 ao lado da média, sempre.
 
 platform	n	media_ms	mediana_ms	p90_ms
-android	2	1060	1092	1092
-web	2	21472	22465	22465
+android	2	1076	1124	1124
+web	1	4406	4406	4406
+
+Tempo ativo, no momento em que a aplicação deixa de estar à vista
+É o evento que fecha uma tentativa, e o número tem de existir dos dois lados:
+sem ele numa plataforma, a comparação entre canais da mesma organização
+(RF-ADM-10) fica com metade da conta.
+
+platform	n	com_tempo_ativo	media_ms	mediana_ms	p90_ms
+android	1	1	41549	41549	41549
+web	2	2	60384	68562	68562
 
