@@ -1,0 +1,25 @@
+
+1. escrever os marcadores em todos os campos, nas duas árvores
+  ok     vistas clássicas preenchidas
+  ok     ecrã em Compose preenchido
+
+2. procurar os marcadores em tudo o que chegou ao armazenamento
+ensaio de fuga em dispositivo, 2026-09-08T16:43:15Z
+dispositivo: sdk_gphone64_x86_64, Android 16, 1 núcleo(s)
+
+  marcadores escritos             4, nas duas árvores de interface
+  eventos android chegados        17
+  eventos com algum marcador      0
+
+  o que o SDK escreveu no lugar do conteúdo:
+    foco	id=nome#77bb0909	
+    tecla	id=nome#77bb0909	
+    desfoco	id=nome#77bb0909	
+    foco	id=cartao#0d295fd8	
+    tecla	id=cartao#0d295fd8	
+    desfoco	id=cartao#0d295fd8	
+    foco	id=validade#986d1d3a	
+    tecla	id=validade#986d1d3a	
+
+  ok     nenhum dos 4 marcadores aparece em nenhum dos 17 eventos
+saida=0

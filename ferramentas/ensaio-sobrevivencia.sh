@@ -105,20 +105,7 @@ RESP=$(saude)
   echo "ensaio de sobrevivência de identidades, $(date -u +%FT%TZ)"
   echo "dispositivo: $("$ADB" shell getprop ro.product.model | tr -d '\r'), Android $("$ADB" shell getprop ro.build.version.release | tr -d '\r'), $("$ADB" shell nproc | tr -d '\r') núcleo(s)"
   echo
-  echo "$RESP" | python3 -c '
-import json, sys
-d = json.load(sys.stdin)["dados"]
-e = d["entre_versoes"]
-print(f"  de                              {e[\"de\"]}")
-print(f"  para                            {e[\"para\"]}")
-print(f"  identidades vistas na v1        {e[\"vistos_na_versao_anterior\"]}")
-print(f"  reconhecidas na v2              {e[\"sobreviveram\"]}")
-print(f"  identidades novas na v2         {e[\"identidades_novas_na_versao_nova\"]}")
-print(f"  taxa de sobrevivência           {d[\"taxa_de_sobrevivencia\"]}")
-print()
-print(f"  desfechos da reconciliação      {d[\"desfechos\"]}")
-print(f"  elementos no registo            {d[\"elementos\"]}")
-'
+  echo "$RESP" | python3 ferramentas/sobrevivencia-em-texto.py
 } | tee "$SAIDA/sobrevivencia.txt"
 
 TAXA=$(echo "$RESP" | python3 -c 'import json,sys; print(json.load(sys.stdin)["dados"]["taxa_de_sobrevivencia"].split("%")[0])' 2>/dev/null)

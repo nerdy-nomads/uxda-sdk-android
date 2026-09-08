@@ -1,0 +1,25 @@
+ensaio de sobrevivência de identidades, 2026-09-08T16:52:57Z
+dispositivo: sdk_gphone64_x86_64, Android 16, 1 núcleo(s)
+projeto criado só para esta medição: 33333333-3333-3333-3333-333333333333
+
+  de                              1.4.0-com-sdk
+  para                            1.4.0-com-sdk-v2
+  identidades vistas na v1        9
+  reconhecidas na v2              9
+  identidades novas na v2         0
+  taxa de sobrevivência           100.0% (9 de 9)
+  elementos no registo            9
+  observações                     0
+
+  desfechos da reconciliação
+
+as nove identidades, e a versão em que cada uma foi vista:
+    /api/pedidos/{numero}#7071c08e  1.4.0-com-sdk  1.4.0-com-sdk-v2
+    button#0#1004d977  1.4.0-com-sdk  1.4.0-com-sdk-v2
+    id=cartao#0d295fd8  1.4.0-com-sdk  1.4.0-com-sdk-v2
+    id=compose#e376230e  1.4.0-com-sdk  1.4.0-com-sdk-v2
+    id=entrar#6222ae7e  1.4.0-com-sdk  1.4.0-com-sdk-v2
+    id=falhar#f6574c81  1.4.0-com-sdk  1.4.0-com-sdk-v2
+    id=nome#77bb0909  1.4.0-com-sdk  1.4.0-com-sdk-v2
+    id=validade#986d1d3a  1.4.0-com-sdk  1.4.0-com-sdk-v2
+    testTag=campo-nome#a81a89fa  1.4.0-com-sdk  1.4.0-com-sdk-v2

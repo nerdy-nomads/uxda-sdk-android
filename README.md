@@ -94,6 +94,69 @@ Nada disto é necessário. Tudo isto melhora a estabilidade da identidade:
   dependências de compilação: quem os usa ganha a integração, quem não os usa não
   leva um byte deles por nossa causa.
 
+## Estado: existe, corre num emulador a sério, e está medido
+
+Os cartões `3.1` a `3.4` estão fechados.
+
+| Caminho | O que é |
+|---|---|
+| `uxda/src/main/kotlin/io/uxda/sdk/Uxda.kt` | A API pública, e o arranque. `track`, `identificar`, `ecra`, `erroDeRede`, `parar`, `diagnostico` |
+| `.../UxdaProvider.kt` | O `ContentProvider` que arranca o SDK antes da aplicação |
+| `.../captura/Captura.kt` | Os dez tipos do `RF-CAP-04`, e os onze pontos de entrada que correm no fio principal |
+| `.../captura/Fragmentos.kt` | Ecrãs feitos de fragmentos, com o `androidx.fragment` só em compilação |
+| `.../fila/` | A fila JSONL a acrescentar, o lote, o recuo e os limites de rede medida |
+| `.../identidade/Elemento.kt` | Os cinco sinais em vistas clássicas |
+| `.../identidade/ElementoCompose.kt` | Os mesmos sinais na árvore semântica fundida, por reflexão |
+| `.../identidade/Mascara.kt` | O resumo do rótulo, regra a regra igual ao do web |
+| `.../Seguranca.kt` | A barreira. Apanha `Throwable`, e não `Exception` |
+| `exemplo/` | A mesma loja de ensaio da web, **sem uma linha de instrumentação**, em quatro variantes |
+
+### Os números, medidos e não estimados
+
+Todos no mesmo emulador de **um núcleo**, que é o que o cartão `3.4` exige: um
+aparelho de gama alta esconde tudo o que se queria ver.
+
+| O quê | Medido | Limite |
+|---|---|---|
+| Acréscimo ao APK da aplicação | **__TAMANHO__** | 300 KB (`RNF-SDK-03`) |
+| Fio principal, por evento capturado | **__FIO__** | 1 ms (`RNF-SDK-05`) |
+| Bateria, uma hora de uso com e sem SDK | **__BATERIA__** | não mensurável (`RNF-SDK-04`) |
+| Sobrevivência de identidades entre duas versões | **__SOBREVIVENCIA__** | - |
+| Ensaios | __ENSAIOS__, incluindo fuga de conteúdo e injeção de falhas | - |
+
+__NOTA_BATERIA__
+
+![A loja de ensaio, com o diagnóstico do SDK ao fundo](exemplo/ensaio-loja-android.png)
+
+### O que só apareceu por correr isto num emulador a sério
+
+**Os fragmentos não eram detetados, e degradavam em silêncio.** A primeira versão
+usava um `Proxy` dinâmico para não depender do `androidx.fragment`, e um `Proxy` só
+sabe implementar interfaces: `FragmentLifecycleCallbacks` é uma classe abstrata.
+Uma aplicação de uma atividade e vinte fragmentos aparecia como **um ecrã só**, que
+é o mesmo defeito que as rotas em `#` deram na web.
+
+**A identidade em Compose vinha vazia.** Estava a ler-se a árvore **crua**, onde o
+`testTag` fica num nó e o texto noutro: o nó mais fundo debaixo do dedo saía sem
+identidade nenhuma, e todos os toques do ecrã davam `compose#0`. Com a árvore
+**fundida**, que é a que o leitor de ecrã lê, os mesmos três toques deram
+`testTag=botao-pagar`, `button#0` e `testTag=campo-nome`.
+
+**O fio principal custava quase o dobro do orçamento**, e a causa não era a leitura
+da vista: era gerar o identificador do evento, que usa a fonte segura de
+aleatoriedade do sistema, mais um formatador de datas e uma escrita nas preferências
+por evento. O evento passou a ser construído no fio de fundo.
+
+**E o cronómetro que media isso não estava ligado a nada.** Estava declarado, estava
+documentado a dizer que incluía a leitura da vista, e ninguém lho passava: o número
+descrevia só a construção do evento. Foi encontrado a reler o código depois da
+medição, e obrigou a medir outra vez.
+
+**Renomear um identificador de recurso destruía a identidade.** A regra dizia que
+dois identificadores diferentes anulavam tudo, e uma versão nova que renomeia
+`pagar` para `botao_pagamento` perdia o elemento. Corrigiu-se nos dois SDK e na
+ingestão, que é quem decide.
+
 ## Como correr
 
 ```bash

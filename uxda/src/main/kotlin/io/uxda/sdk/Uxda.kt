@@ -51,6 +51,22 @@ object Uxda {
     private var emitidos = 0
     private var recusados = 0
     private var msNoFioPrincipal = 0.0
+
+    /**
+     * O relógio do orçamento do fio principal é o **tempo de CPU do próprio fio**, e
+     * não o relógio de parede. RNF-SDK-05.
+     *
+     * A diferença não é académica, e apareceu a medir: num emulador de um núcleo a
+     * ser martelado por um guião, o fio principal é tirado do processador a meio do
+     * nosso trabalho, e o relógio de parede conta a espera como se fosse trabalho
+     * nosso. A primeira medição assim deu 139 ms por evento num sítio onde o fio
+     * inteiro, incluindo a aplicação, gastou 38 ms de CPU: um número maior do que o
+     * total é um número que está a medir outra coisa.
+     *
+     * O que o orçamento quer saber é quanto trabalho o SDK põe no fio que desenha o
+     * ecrã, e isso é CPU.
+     */
+    private fun agoraNoFio(): Long = android.os.Debug.threadCpuTimeNanos()
     private var ligado = false
 
     /** Arranque manual, para quem prefere decidir o momento. */
@@ -222,6 +238,11 @@ object Uxda {
             "msNoFioPrincipal" to Math.round(msNoFioPrincipal * 100) / 100.0,
             "tempoAtivoMs" to (captura?.tempoAtivoMs ?: 0L),
             "errosInternos" to Seguranca.errosInternos().size,
+            // **Onde**, e não só quantos. Um contador diz que alguma coisa correu
+            // mal e não deixa ninguém descobrir o quê, e este registo é a única
+            // forma de o saber: a barreira engole tudo, de propósito.
+            "ultimosErros" to Seguranca.errosInternos().takeLast(3)
+                .map { "${it.onde}: ${it.erro.javaClass.simpleName}" },
         )
     }
 
@@ -230,17 +251,6 @@ object Uxda {
 
     /* --------------------------------------------------------- por dentro */
 
-    /**
-     * O fio principal faz aqui **o mínimo**: lê o que só se pode ler onde o toque
-     * acontece (o tipo, o elemento, a duração, o ecrã) e passa o resto para o fio
-     * de fundo.
-     *
-     * O resto não é pouco: gerar um `UUID` usa a fonte segura de aleatoriedade do
-     * sistema, e num telemóvel de gama baixa isso sozinho custa mais de um
-     * milissegundo. A medição do cartão 3.4 dava 1,9 ms por evento com tudo aqui
-     * dentro; com o identificador, o relógio e a sessão do outro lado, o fio
-     * principal fica com o que não pode mesmo sair de cá.
-     */
     /**
      * Cronometra um bloco que corre no fio principal da interface, e é o único sítio
      * onde esse tempo se soma. RNF-SDK-05, cartão 3.4.
@@ -256,18 +266,29 @@ object Uxda {
             bloco()
             return
         }
-        val inicio = System.nanoTime()
+        val inicio = agoraNoFio()
         aMedirFioPrincipal = true
         try {
             bloco()
         } finally {
             aMedirFioPrincipal = false
-            msNoFioPrincipal += (System.nanoTime() - inicio) / 1_000_000.0
+            msNoFioPrincipal += (agoraNoFio() - inicio) / 1_000_000.0
         }
     }
 
+    /**
+     * O fio principal faz aqui **o mínimo**: lê o que só se pode ler onde o toque
+     * acontece (o tipo, o elemento, a duração, o ecrã) e passa o resto para o fio
+     * de fundo.
+     *
+     * O resto não é pouco: gerar um `UUID` usa a fonte segura de aleatoriedade do
+     * sistema, e num telemóvel de gama baixa isso sozinho custa mais de um
+     * milissegundo. A medição do cartão 3.4 dava 1,9 ms por evento com tudo aqui
+     * dentro; com o identificador, o relógio e a sessão do outro lado, o fio
+     * principal fica com o que não pode mesmo sair de cá.
+     */
     private fun emitirEvento(tipo: String, elemento: String?, duracao: Long?, extras: Map<String, String>) {
-        val inicio = System.nanoTime()
+        val inicio = agoraNoFio()
         var contar = false
         Seguranca.executar("uxda.emitir") {
             if (!ligado || !amostrado) return@executar
@@ -300,7 +321,7 @@ object Uxda {
         }
         // Uma emissão que venha de fora da captura (o `track` de quem integra, por
         // exemplo) conta aqui; a que vem de dentro já está dentro do bloco medido.
-        if (contar && !aMedirFioPrincipal) msNoFioPrincipal += (System.nanoTime() - inicio) / 1_000_000.0
+        if (contar && !aMedirFioPrincipal) msNoFioPrincipal += (agoraNoFio() - inicio) / 1_000_000.0
     }
 
     private fun emPlanoDeFundo(bloco: () -> Unit) {

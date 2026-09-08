@@ -4,6 +4,7 @@ import android.app.Activity
 import android.os.Bundle
 import io.uxda.sdk.captura.Captura
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -77,6 +78,63 @@ class CapturaTest {
         assertEquals("continua à vista, com a segunda atividade", 0, paraTras)
         c.onActivityStopped(segunda)
         assertEquals(1, paraTras)
+    }
+
+    @Test
+    fun `a classe que nao tem getError tambem fica guardada`() {
+        // O defeito que isto fixa custou 33 ms por evento no fio principal, e não
+        // dava erro nenhum: a cache usava `getOrPut`, que volta a calcular sempre
+        // que o valor guardado é nulo. Nulo é exatamente o que se guarda para as
+        // classes sem `getError`, que são quase todas as de uma árvore de vistas, e
+        // por isso cada toque voltava a pedir a lista completa de métodos de cada
+        // vista do ecrã.
+        val c = Captura(emitir = { _, _, _, _ -> }, definirEcra = {})
+        val grupo = android.widget.LinearLayout(atividade())
+
+        assertEquals(false, c.temErro(grupo))
+        assertTrue("a classe sem getError tem de ficar na cache", c.metodoDeErro.containsKey(grupo.javaClass))
+        assertEquals(null, c.metodoDeErro[grupo.javaClass])
+
+        c.temErro(grupo)
+        assertEquals("e a segunda passagem não pode acrescentar nada", 1, c.metodoDeErro.size)
+    }
+
+    @Test
+    fun `um campo de texto nao passa sequer pela reflexao`() {
+        // `getError` é API do `TextView`, e é dele que descendem os campos onde a
+        // validação da plataforma aparece. O caminho comum não paga reflexão.
+        val c = Captura(emitir = { _, _, _, _ -> }, definirEcra = {})
+        val campo = android.widget.EditText(atividade())
+        campo.error = "Falta o nome"
+
+        assertTrue(c.temErro(campo))
+        assertTrue("o TextView não devia ter chegado à cache de reflexão", c.metodoDeErro.isEmpty())
+
+        campo.error = null
+        assertEquals(false, c.temErro(campo))
+    }
+
+    @Test
+    fun `o ouvinte da acao do teclado que a aplicacao pos e encontrado`() {
+        // A ação do teclado é o `submit` da web, e o SDK encadeia-se ao ouvinte que
+        // a aplicação já tiver. Ler esse ouvinte obriga a reflexão sobre um campo
+        // privado, e **o caminho até ele mudou entre versões do Android**: em
+        // Android 16 a primeira versão rebentava com `NoSuchFieldException`, o que
+        // fazia o SDK substituir o ouvinte da aplicação em vez de o encadear, e o
+        // formulário de quem nos instalou deixava de submeter.
+        val c = Captura(emitir = { _, _, _, _ -> }, definirEcra = {})
+        val campo = android.widget.EditText(atividade())
+
+        val semNada = c.ouvinteAtualDeAcao(campo)
+        assertTrue("um campo sem ouvinte tem de ser legível", semNada.lido)
+        assertEquals(null, semNada.ouvinte)
+
+        val meu = android.widget.TextView.OnEditorActionListener { _, _, _ -> true }
+        campo.setOnEditorActionListener(meu)
+
+        val comOuvinte = c.ouvinteAtualDeAcao(campo)
+        assertTrue("com ouvinte posto, tem de continuar legível", comOuvinte.lido)
+        assertSame("e tem de ser o da aplicação, para poder ser chamado", meu, comOuvinte.ouvinte)
     }
 
     @Test

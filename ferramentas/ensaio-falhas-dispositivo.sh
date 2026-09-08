@@ -24,7 +24,20 @@ FALHOU=0
 viva() { "$ADB" shell dumpsys activity activities 2>/dev/null | grep -q "topResumedActivity.*$PACOTE"; }
 usar() { for y in 718 328 448 566 844 970; do "$ADB" shell input tap 540 "$y" >/dev/null 2>&1; sleep 0.4; done; }
 
+# A outra variante fica a escrever o diagnóstico dela no mesmo registo de dois em
+# dois segundos, e a última linha passava a ser a dela.
+"$ADB" shell am force-stop io.uxda.exemplo.sem >/dev/null 2>&1
 "$ADB" shell am force-stop "$PACOTE" >/dev/null 2>&1
+
+# **Sem `run-as` este ensaio não parte nada**, e passa a dizer que a aplicação
+# sobreviveu a tudo por não lhe ter acontecido nada. O `run-as` só funciona numa
+# variante de depuração, e numa variante de lançamento falha em silêncio.
+if ! "$ADB" shell run-as "$PACOTE" true >/dev/null 2>&1; then
+  echo "  FALHA  o run-as não funciona: a variante instalada não é de depuração."
+  echo "         ./gradlew :exemplo:installComV1Debug -PuxdaChave=<chave>"
+  exit 1
+fi
+
 "$ADB" logcat -c >/dev/null 2>&1
 "$ADB" shell am start -n "$ATIVIDADE" >/dev/null 2>&1
 sleep 6
@@ -55,11 +68,14 @@ else
   "$ADB" logcat -d | grep -A6 "FATAL EXCEPTION" | head -20
 fi
 
-ERROS=$("$ADB" logcat -d -s UxdaExemplo 2>/dev/null | tail -1 | grep -o '"errosInternos": *[0-9]*' | grep -o '[0-9]*$')
+ERROS=$("$ADB" logcat -d -s UxdaExemplo 2>/dev/null | grep '"errosInternos"' | tail -1 | grep -o '"errosInternos": *[0-9]*' | grep -o '[0-9]*$')
+# **Zero erros internos aqui é uma falha, e não um bom sinal.** Quer dizer que
+# nada do que se partiu chegou a ser tocado, e o ensaio estaria a dizer que a
+# aplicação sobreviveu a uma coisa que não lhe aconteceu.
 if [ -n "${ERROS:-}" ] && [ "$ERROS" -gt 0 ]; then
-  ok "o SDK registou $ERROS erros internos por dentro, e engoliu-os todos"
+  ok "o SDK apanhou $ERROS erros internos por dentro, e engoliu-os todos"
 else
-  ok "o SDK registou ${ERROS:-0} erros internos (o disco fechado pode não ter chegado a ser tocado)"
+  falha "o SDK registou ${ERROS:-0} erros internos: as falhas não chegaram a ser injetadas"
 fi
 
 passo "5. repor o dispositivo"

@@ -1,10 +1,10 @@
 
 tempo no fio principal, 200 toques
 
-  dispositivo                      sdk_gphone64_x86_64, 2 núcleo(s)
+  dispositivo                      sdk_gphone64_x86_64, 1 núcleo(s)
   eventos capturados               203
-  tempo total no fio principal     140.84 ms
-  por evento capturado             0.694 ms   limite 1 ms
+  tempo total no fio principal     84.43 ms
+  por evento capturado             0.416 ms   limite 1 ms
   erros internos                   0
 
 saida=0

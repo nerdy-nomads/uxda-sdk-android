@@ -27,6 +27,7 @@ echo
 echo "tempo no fio principal, $TOQUES toques"
 echo
 
+"$ADB" shell am force-stop io.uxda.exemplo.sem >/dev/null 2>&1
 "$ADB" shell am force-stop "$PACOTE" >/dev/null 2>&1
 "$ADB" logcat -c >/dev/null 2>&1
 "$ADB" shell am start -n "$ATIVIDADE" >/dev/null 2>&1
@@ -37,7 +38,9 @@ for _ in $(seq 1 "$TOQUES"); do
 done
 sleep 4
 
-LINHA=$("$ADB" logcat -d -s UxdaExemplo 2>/dev/null | tail -1)
+# A linha da variante **com** SDK, e não a última que lá estiver: a variante sem
+# SDK escreve o diagnóstico dela no mesmo registo de dois em dois segundos.
+LINHA=$("$ADB" logcat -d -s UxdaExemplo 2>/dev/null | grep '"msNoFioPrincipal"' | tail -1)
 MS=$(echo "$LINHA" | grep -o '"msNoFioPrincipal": *[0-9.]*' | grep -o '[0-9.]*$')
 EVENTOS=$(echo "$LINHA" | grep -o '"eventosEmitidos": *[0-9]*' | grep -o '[0-9]*$')
 ERROS=$(echo "$LINHA" | grep -o '"errosInternos": *[0-9]*' | grep -o '[0-9]*$')

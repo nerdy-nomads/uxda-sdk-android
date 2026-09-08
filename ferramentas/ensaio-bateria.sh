@@ -31,7 +31,10 @@ mkdir -p "$SAIDA"
 passo() { printf '\n\033[1m%s\033[0m\n' "$*"; }
 ok()    { printf '  \033[32mok\033[0m     %s\n' "$*"; }
 
-uid_de() { "$ADB" shell dumpsys package "$1" 2>/dev/null | sed -n 's/.*userId=\([0-9]*\).*/\1/p' | head -1; }
+# `pm list packages -U`, e não o `userId=` do `dumpsys package`: o dumpsys das
+# versões recentes já não traz essa linha, e a leitura saía vazia sem dar erro
+# nenhum. O consumo por aplicação aparecia como "n/d" no relatório.
+uid_de() { "$ADB" shell pm list packages -U 2>/dev/null | tr -d '\r' | awk -v p="package:$1" '$1 == p {sub("uid:", "", $2); print $2}'; }
 
 cpu_de() {
   local pacote="$1" total=0
@@ -79,11 +82,18 @@ while [ "$(date +%s)" -lt "$FIM" ]; do
 done
 
 passo "2. o que cada variante gastou"
+EVENTOS=$("$ADB" logcat -d -s UxdaExemplo 2>/dev/null | grep -o '"eventosEmitidos": *[0-9]*' | tail -1 | grep -o '[0-9]*$')
 CPU_COM=$(cpu_de "$COM"); CPU_SEM=$(cpu_de "$SEM")
 "$ADB" shell dumpsys batterystats > "$SAIDA/batterystats.txt" 2>/dev/null
 UID_COM=$(uid_de "$COM"); UID_SEM=$(uid_de "$SEM")
-DRAIN_COM=$(grep -E "Uid $UID_COM:" "$SAIDA/batterystats.txt" | head -1 | sed 's/.*Uid [0-9]*: *//' | awk '{print $1}')
-DRAIN_SEM=$(grep -E "Uid $UID_SEM:" "$SAIDA/batterystats.txt" | head -1 | sed 's/.*Uid [0-9]*: *//' | awk '{print $1}')
+# O `batterystats` escreve o consumo estimado por aplicação como `UID u0aNNN:`,
+# onde `NNN` é o uid menos 10000. Num emulador o total (`Computed drain`) vem a
+# zero, porque não há medidor físico, mas o consumo por aplicação existe: sai do
+# perfil de energia aplicado ao tempo de CPU. É por isso que o número que manda
+# aqui é o de CPU, e o de mAh vai ao lado.
+u0a() { echo "u0a$(( $1 - 10000 ))"; }
+DRAIN_COM=$(grep -E "UID $(u0a "${UID_COM:-0}"):" "$SAIDA/batterystats.txt" | head -1 | sed 's/.*: *//' | awk '{print $1}')
+DRAIN_SEM=$(grep -E "UID $(u0a "${UID_SEM:-0}"):" "$SAIDA/batterystats.txt" | head -1 | sed 's/.*: *//' | awk '{print $1}')
 
 # Um jiffy são 10 ms nestes sistemas.
 MS_COM=$((CPU_COM * 10)); MS_SEM=$((CPU_SEM * 10))
@@ -91,12 +101,14 @@ DIF=$((MS_COM - MS_SEM))
 
 {
   echo "ensaio de bateria, $MINUTOS minutos, $(date -u +%FT%TZ)"
-  echo "dispositivo: $("$ADB" shell getprop ro.product.model | tr -d '\r'), Android $("$ADB" shell getprop ro.build.version.release | tr -d '\r'), $("$ADB" shell 'grep -c processor /proc/cpuinfo' | tr -d '\r') núcleo(s)"
+  echo "dispositivo: $("$ADB" shell getprop ro.product.model | tr -d '\r'), Android $("$ADB" shell getprop ro.build.version.release | tr -d '\r'), $("$ADB" shell nproc | tr -d '\r') núcleo(s)"
   echo
   printf '%-28s %12s %12s\n' "" "com SDK" "sem SDK"
   printf '%-28s %12s %12s\n' "tempo de CPU (ms)" "$MS_COM" "$MS_SEM"
   printf '%-28s %12s %12s\n' "consumo modelado (mAh)" "${DRAIN_COM:-n/d}" "${DRAIN_SEM:-n/d}"
   printf '%-28s %12s\n' "diferença de CPU (ms)" "$DIF"
+  printf '%-28s %12s\n' "diferença em percentagem" "$(awk -v a="$MS_COM" -v b="$MS_SEM" 'BEGIN{if(b>0) printf "%+.1f%%", (a-b)*100/b; else print "n/d"}')"
+  printf '%-28s %12s\n' "eventos capturados" "${EVENTOS:-n/d}"
   echo
   echo "uid com SDK: ${UID_COM:-n/d}   uid sem SDK: ${UID_SEM:-n/d}"
 } | tee "$SAIDA/bateria.txt"

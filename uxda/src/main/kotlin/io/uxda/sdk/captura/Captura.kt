@@ -223,6 +223,16 @@ class Captura(
      * apanhar uma sequência de toques, e são pouco de mais para o texto do botão
      * mudar sem darmos por isso.
      */
+    /** A mesma cache, para quem não tem coordenadas: a procura de erros. */
+    private fun chaveCacheada(v: View): String? {
+        val guardada = v.getTag(TAG_CHAVE) as? Pair<*, *>
+        val quando = guardada?.second as? Long
+        if (quando != null && agora() - quando < 2_000L) return guardada.first as? String
+        val chave = Elemento.chaveDe(v).ifEmpty { null }
+        v.setTag(TAG_CHAVE, Pair(chave, agora()))
+        return chave
+    }
+
     private fun chaveDe(v: View, x: Float, y: Float): String? {
         if (!ElementoCompose.ehCompose(v)) {
             val guardada = v.getTag(TAG_CHAVE) as? Pair<*, *>
@@ -306,7 +316,15 @@ class Captura(
      */
     private fun encadearAcaoDoTeclado(v: EditText) {
         Seguranca.executar("captura.acaoTeclado") {
-            val anterior = ouvinteAtualDeAcao(v)
+            val atual = ouvinteAtualDeAcao(v)
+            // **Se não se conseguir ler o que lá está, não se põe nada.** Encadear
+            // às cegas é o mesmo que substituir: o ouvinte da aplicação
+            // desaparecia, e o formulário de quem nos instalou deixava de submeter.
+            // Perde-se o sinal de submissão naquele campo, e é o lado certo para
+            // falhar. O ADR 0019 diz isto por palavras, e a leitura por reflexão
+            // falhou mesmo, em Android 16, com `NoSuchFieldException`.
+            if (!atual.lido) return@executar
+            val anterior = atual.ouvinte
             v.setOnEditorActionListener { alvo, acao, evento ->
                 medir { Seguranca.executar("captura.submissao") {
                     if (acao == android.view.inputmethod.EditorInfo.IME_ACTION_DONE ||
@@ -322,15 +340,56 @@ class Captura(
         }
     }
 
-    private fun ouvinteAtualDeAcao(v: EditText): TextView.OnEditorActionListener? =
-        Seguranca.protegido("captura.ouvinteAcao", null) {
-            val campoEditor = TextView::class.java.getDeclaredField("mEditor").apply { isAccessible = true }
-            val editor = campoEditor.get(v) ?: return@protegido null
-            val campoTipo = editor.javaClass.getDeclaredField("mInputContentType").apply { isAccessible = true }
-            val tipo = campoTipo.get(editor) ?: return@protegido null
-            val campoOuvinte = tipo.javaClass.getDeclaredField("onEditorActionListener").apply { isAccessible = true }
-            campoOuvinte.get(tipo) as? TextView.OnEditorActionListener
+    /**
+     * O que lá está agora, e **se foi possível sabê-lo**.
+     *
+     * A distinção é o que interessa: um ouvinte nulo quer dizer que a aplicação não
+     * pôs nenhum, e aí podemos pôr o nosso; não conseguir ler quer dizer que não
+     * sabemos, e aí não se toca em nada.
+     */
+    internal class OuvinteAtual(val lido: Boolean, val ouvinte: TextView.OnEditorActionListener?)
+
+    /**
+     * O ouvinte da ação do teclado vive num campo privado, e o caminho até lá mudou
+     * entre versões do Android: já esteve no próprio `TextView`, e está no `Editor`
+     * nas versões recentes. Por isso procura-se pelos dois lados, e o campo procura-se
+     * a subir a hierarquia de classes em vez de se exigir que esteja na folha.
+     */
+    internal fun ouvinteAtualDeAcao(v: EditText): OuvinteAtual {
+        var lido = false
+        var achado: TextView.OnEditorActionListener? = null
+        Seguranca.executar("captura.ouvinteAcao") {
+            val tipo = valorDoCampo(v, "mInputContentType")
+                ?: valorDoCampo(v, "mEditor")?.let { valorDoCampo(it, "mInputContentType") }
+            if (tipo == null) {
+                // Sem tipo de conteúdo não há ouvinte nenhum guardado: a aplicação
+                // não pôs nada, e o campo é nosso sem tirar nada a ninguém.
+                lido = true
+                return@executar
+            }
+            val campo = campoNaHierarquia(tipo.javaClass, "onEditorActionListener") ?: return@executar
+            achado = campo.get(tipo) as? TextView.OnEditorActionListener
+            lido = true
         }
+        return OuvinteAtual(lido, achado)
+    }
+
+    private fun valorDoCampo(alvo: Any, nome: String): Any? {
+        val campo = campoNaHierarquia(alvo.javaClass, nome) ?: return null
+        return campo.get(alvo)
+    }
+
+    private fun campoNaHierarquia(classe: Class<*>, nome: String): java.lang.reflect.Field? {
+        var atual: Class<*>? = classe
+        while (atual != null) {
+            try {
+                return atual.getDeclaredField(nome).apply { isAccessible = true }
+            } catch (_: NoSuchFieldException) {
+                atual = atual.superclass
+            }
+        }
+        return null
+    }
 
     private fun submeter(a: Activity, origem: View) {
         emitir(Tipos.SUBMISSAO, Elemento.chaveDe(origem).ifEmpty { null }, null, emptyMap())
@@ -352,7 +411,10 @@ class Captura(
             val encontrados = HashSet<String>()
             percorrer(raiz, 0) { v ->
                 if (temErro(v)) {
-                    val chave = Elemento.chaveDe(v).ifEmpty { null }
+                    // Pela cache, e não outra vez do zero: um campo com erro fica
+                    // com erro, e cada toque seguinte voltava a subir a árvore e a
+                    // contar irmãos para chegar à mesma chave.
+                    val chave = chaveCacheada(v)
                     val id = chave ?: v.hashCode().toString()
                     encontrados.add(id)
                     if (id !in errosVistos) {
@@ -365,19 +427,40 @@ class Captura(
     }
 
     // O método é o mesmo para todas as vistas da mesma classe: procura-se uma vez.
-    // Sem isto era uma varredura da lista de métodos por vista e por toque.
-    private val metodoDeErro = HashMap<Class<*>, java.lang.reflect.Method?>()
+    //
+    // E é preciso guardar **também as classes que não o têm**, que são quase todas.
+    // A primeira versão usava `getOrPut`, e o `getOrPut` volta a calcular sempre que
+    // o valor guardado é nulo: para um `LinearLayout` ou um `ScrollView` a cache
+    // nunca acertava, e cada toque voltava a pedir a lista completa de métodos de
+    // cada vista da árvore. São umas centenas de métodos por vista, umas dezenas de
+    // vistas por ecrã, a cada toque.
+    //
+    // Isto era **99% do custo do SDK no fio principal**: 33,8 ms dos 34 ms por
+    // evento, medidos num emulador de um núcleo. A leitura da vista, que era o
+    // suspeito óbvio, custava 0,13 ms.
+    internal val metodoDeErro = HashMap<Class<*>, java.lang.reflect.Method?>()
 
-    private fun temErro(v: View): Boolean = Seguranca.protegido("captura.temErro", false) {
+    internal fun temErro(v: View): Boolean = Seguranca.protegido("captura.temErro", false) {
+        // O caminho comum não precisa de reflexão nenhuma: `getError` é API do
+        // `TextView`, e é dele que descendem os campos e os botões onde a validação
+        // da plataforma aparece. A reflexão fica para a vista feita em casa que
+        // tenha o método sem descender dali.
+        if (v is android.widget.TextView) return@protegido !v.error.isNullOrEmpty()
         val classe = v.javaClass
-        val m = metodoDeErro.getOrPut(classe) {
+        val m = if (metodoDeErro.containsKey(classe)) {
+            metodoDeErro[classe]
+        } else {
             classe.methods.firstOrNull { it.name == "getError" && it.parameterCount == 0 }
+                .also { metodoDeErro[classe] = it }
         } ?: return@protegido false
         (m.invoke(v) as? CharSequence)?.isNotEmpty() == true
     }
 
     private fun percorrer(v: View, nivel: Int, bloco: (View) -> Unit) {
-        if (nivel > 24) return
+        // Uma vista escondida não mostra erro nenhum a ninguém, e o ramo debaixo
+        // dela também não. Numa aplicação com abas ou com um menu lateral fechado,
+        // isso é a maior parte da árvore.
+        if (nivel > 24 || v.visibility != View.VISIBLE) return
         bloco(v)
         if (v is ViewGroup) for (i in 0 until v.childCount) percorrer(v.getChildAt(i), nivel + 1, bloco)
     }

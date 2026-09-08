@@ -1,0 +1,21 @@
+  ok     aplicação a correr antes de partir seja o que for
+
+1. o ficheiro da fila fica a meio de uma escrita
+  ok     a aplicação sobreviveu a uma fila corrompida
+
+2. o SDK deixa de poder escrever no disco
+  ok     a aplicação sobreviveu ao disco fechado
+
+3. e sem rede nenhuma por cima disso
+  ok     a aplicação sobreviveu sem rede e sem disco
+
+4. o que o sistema registou
+  ok     nenhuma exceção fatal no registo do sistema
+  ok     o SDK apanhou 43 erros internos por dentro, e engoliu-os todos
+
+5. repor o dispositivo
+  ok     disco e rede de volta
+
+resultado
+  ok     a anfitriã sobreviveu a tudo
+saida=0

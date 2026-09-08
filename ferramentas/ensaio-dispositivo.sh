@@ -35,6 +35,16 @@ tocar() { "$ADB" shell input tap "$1" "$2" >/dev/null 2>&1; sleep 1; }
 
 "$ADB" get-state >/dev/null 2>&1 || { echo "sem dispositivo ligado"; exit 1; }
 
+# A fila lê-se com `run-as`, e o `run-as` só funciona numa variante de depuração.
+# Numa de lançamento falha em silêncio, e o ensaio contava zero eventos em fila e
+# dava isso por bom.
+"$ADB" shell run-as "$PACOTE" true >/dev/null 2>&1 || {
+  echo "  FALHA  o run-as não funciona: a variante instalada não é de depuração."
+  echo "         ./gradlew :exemplo:installComV1Debug -PuxdaChave=<chave>"
+  exit 1
+}
+"$ADB" shell am force-stop io.uxda.exemplo.sem >/dev/null 2>&1
+
 # ------------------------------------------------------------------ ensaio 1
 passo "1. o sistema mata a aplicação a meio de uma tentativa"
 
