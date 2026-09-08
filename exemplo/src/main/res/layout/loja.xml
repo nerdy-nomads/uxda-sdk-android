@@ -74,6 +74,12 @@
             android:layout_height="wrap_content"
             android:text="Abrir o ecrã em Compose" />
 
+        <Button
+            android:id="@+id/apoio"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Apoio, em fragmentos" />
+
         <TextView
             android:id="@+id/diagnostico"
             android:layout_width="match_parent"

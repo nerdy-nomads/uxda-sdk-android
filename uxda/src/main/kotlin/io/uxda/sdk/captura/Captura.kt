@@ -41,6 +41,12 @@ class Captura(
     private val emitir: (tipo: String, elemento: String?, duracao: Long?, extras: Map<String, String>) -> Unit,
     private val definirEcra: (String) -> Unit,
     private val agora: () -> Long = { System.currentTimeMillis() },
+    /**
+     * Onde se soma o tempo gasto no fio principal. **Inclui a leitura da vista**,
+     * que é a parte que não pode sair de cá: medir só o que vem depois dava um
+     * número bonito e falso.
+     */
+    private val medir: (nanos: Long) -> Unit = {},
 ) : Application.ActivityLifecycleCallbacks {
 
     private var atividadesVisiveis = 0
@@ -98,40 +104,14 @@ class Captura(
     }
 
     /**
-     * Fragmentos, quando a aplicação os usa. Feito por reflexão de propósito: o
-     * `androidx.fragment` é uma dependência que muita aplicação tem e outras não,
-     * e o SDK não pode obrigar ninguém a levá-la.
+     * Fragmentos, quando a aplicação os usa. O trabalho está no `Fragmentos`, que
+     * só toca no `androidx.fragment` depois de confirmar que ele existe.
      */
     private fun registarFragmentos(a: Activity) {
-        val obter = a.javaClass.methods.firstOrNull {
-            it.name == "getSupportFragmentManager" && it.parameterCount == 0
-        } ?: return
-        val gestor = obter.invoke(a) ?: return
-        val classeCallbacks = Class.forName("androidx.fragment.app.FragmentManager\$FragmentLifecycleCallbacks")
-        if (fragmentosRegistados.contains(gestor)) return
-        val proxy = java.lang.reflect.Proxy.newProxyInstance(
-            classeCallbacks.classLoader, arrayOf(classeCallbacks)
-        ) { _, metodo, args ->
-            Seguranca.executar("captura.fragmento") {
-                if (metodo.name == "onFragmentResumed" && args != null && args.size >= 2) {
-                    val f = args[1]
-                    val nome = f.javaClass.simpleName.removeSuffix("Fragment")
-                    definirEcra("/" + nome.replace(Regex("([a-z])([A-Z])"), "$1-$2").lowercase())
-                    emitir(Tipos.ECRA, null, null, emptyMap())
-                }
-            }
-            null
-        }
-        // O proxy dinâmico só serve para uma interface; para uma classe abstrata é
-        // preciso outra via, e é por isso que isto degrada em silêncio quando não dá.
-        Seguranca.executar("captura.registarFragmentos") {
-            val registar = gestor.javaClass.methods.firstOrNull { it.name == "registerFragmentLifecycleCallbacks" }
-            registar?.invoke(gestor, proxy, true)
-            fragmentosRegistados.add(gestor)
-        }
+        Fragmentos.ligar(a, definirEcra) { tipo -> emitir(tipo, null, null, emptyMap()) }
     }
 
-    private val fragmentosRegistados = HashSet<Any>()
+
 
     /* ------------------------------------------------------------- toque */
 
@@ -153,8 +133,10 @@ class Captura(
     ) : Window.Callback by original {
 
         override fun dispatchTouchEvent(ev: MotionEvent): Boolean {
-            Seguranca.executar("captura.toque") {
-                if (ev.action == MotionEvent.ACTION_UP) anotarToque(atividade, ev.rawX, ev.rawY)
+            if (ev.action == MotionEvent.ACTION_UP) {
+                val inicio = System.nanoTime()
+                Seguranca.executar("captura.toque") { anotarToque(atividade, ev.rawX, ev.rawY) }
+                medir(System.nanoTime() - inicio)
             }
             return original.dispatchTouchEvent(ev)
         }
@@ -180,9 +162,14 @@ class Captura(
         val vista = vistaNoPonto(raiz, x, y) ?: return
         val chave = chaveDe(vista, x, y) ?: return
         emitir(Tipos.TOQUE, chave, null, emptyMap())
-        // A validação da plataforma aparece **depois** do toque: um `setError` num
-        // campo é o `invalid` da web, e é aqui que se vê.
-        procurarErros(raiz)
+        // A validação da plataforma aparece **depois** de uma ação, e não a cada
+        // toque: um `setError` num campo é o `invalid` da web, e quem o dispara é
+        // carregar num botão, não pousar o dedo numa lista.
+        //
+        // Varrer a árvore inteira a cada toque custava metade do orçamento do fio
+        // principal na medição em gama baixa do cartão 3.4. Agora só se varre
+        // depois de tocar em algo acionável.
+        if (vista is android.widget.Button || vista.isClickable) procurarErros(raiz)
     }
 
     /**
@@ -216,7 +203,27 @@ class Captura(
         return achada
     }
 
+    /**
+     * A chave de um elemento custa uma subida da árvore, uma contagem de irmãos e
+     * um resumo do texto. Numa lista onde o dedo bate no mesmo sítio, isso repete-se
+     * a cada toque, e foi metade do que sobrava do orçamento do fio principal.
+     *
+     * Guarda-se na própria vista, com validade curta: dois segundos chegam para
+     * apanhar uma sequência de toques, e são pouco de mais para o texto do botão
+     * mudar sem darmos por isso.
+     */
     private fun chaveDe(v: View, x: Float, y: Float): String? {
+        if (!ElementoCompose.ehCompose(v)) {
+            val guardada = v.getTag(TAG_CHAVE) as? Pair<*, *>
+            val quando = guardada?.second as? Long
+            if (quando != null && agora() - quando < 2_000L) return guardada.first as? String
+        }
+        val chave = calcularChave(v, x, y)
+        if (!ElementoCompose.ehCompose(v)) v.setTag(TAG_CHAVE, Pair(chave, agora()))
+        return chave
+    }
+
+    private fun calcularChave(v: View, x: Float, y: Float): String? {
         if (ElementoCompose.ehCompose(v)) {
             val local = IntArray(2)
             v.getLocationOnScreen(local)
@@ -346,9 +353,15 @@ class Captura(
         }
     }
 
+    // O método é o mesmo para todas as vistas da mesma classe: procura-se uma vez.
+    // Sem isto era uma varredura da lista de métodos por vista e por toque.
+    private val metodoDeErro = HashMap<Class<*>, java.lang.reflect.Method?>()
+
     private fun temErro(v: View): Boolean = Seguranca.protegido("captura.temErro", false) {
-        val m = v.javaClass.methods.firstOrNull { it.name == "getError" && it.parameterCount == 0 }
-            ?: return@protegido false
+        val classe = v.javaClass
+        val m = metodoDeErro.getOrPut(classe) {
+            classe.methods.firstOrNull { it.name == "getError" && it.parameterCount == 0 }
+        } ?: return@protegido false
         (m.invoke(v) as? CharSequence)?.isNotEmpty() == true
     }
 
@@ -360,5 +373,6 @@ class Captura(
 
     companion object {
         private val TAG_OUVINTE = "uxda.ouvinte".hashCode()
+        private val TAG_CHAVE = "uxda.chave".hashCode()
     }
 }

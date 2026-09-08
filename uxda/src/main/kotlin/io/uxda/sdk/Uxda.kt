@@ -201,6 +201,14 @@ object Uxda {
                 "perdidos" to e?.perdidos, "bytes" to e?.bytes, "ultimoErro" to e?.ultimoErro,
             ),
             "ecra" to ecraAtual,
+            // O estado da rede entra no diagnóstico porque é ele que decide o
+            // ritmo do envio: em rede medida ou com poupança de bateria ligada, o
+            // SDK abranda em vez de desligar, e sem isto ninguém consegue ver que
+            // foi isso que aconteceu.
+            "rede" to (app?.let { a ->
+                val r = estadoDaRede(a)
+                mapOf("ligado" to r.ligado, "medida" to r.medida, "poupanca" to r.poupanca)
+            } ?: emptyMap<String, Any>()),
             "eventosEmitidos" to emitidos,
             "eventosRecusados" to recusados,
             "msNoFioPrincipal" to Math.round(msNoFioPrincipal * 100) / 100.0,
@@ -214,34 +222,50 @@ object Uxda {
 
     /* --------------------------------------------------------- por dentro */
 
+    /**
+     * O fio principal faz aqui **o mínimo**: lê o que só se pode ler onde o toque
+     * acontece (o tipo, o elemento, a duração, o ecrã) e passa o resto para o fio
+     * de fundo.
+     *
+     * O resto não é pouco: gerar um `UUID` usa a fonte segura de aleatoriedade do
+     * sistema, e num telemóvel de gama baixa isso sozinho custa mais de um
+     * milissegundo. A medição do cartão 3.4 dava 1,9 ms por evento com tudo aqui
+     * dentro; com o identificador, o relógio e a sessão do outro lado, o fio
+     * principal fica com o que não pode mesmo sair de cá.
+     */
     private fun emitirEvento(tipo: String, elemento: String?, duracao: Long?, extras: Map<String, String>) {
         val inicio = System.nanoTime()
+        var contar = false
         Seguranca.executar("uxda.emitir") {
             if (!ligado || !amostrado) return@executar
             if (!configuracao.capturaTipo(tipo)) return@executar
             val agora = System.currentTimeMillis()
-            val ev = Evento(
-                eventId = Ids.uuid(),
-                anonymousId = identidade.anonimo,
-                deviceId = identidade.dispositivo,
-                sessionId = identidade.sessao(agora),
-                eventType = tipo,
-                screenKey = ecraAtual,
-                occurredAt = Relogio.iso(agora),
-                appVersion = opcoes?.versaoApp ?: "0.0.0",
-                captureLevel = configuracao.nivel,
-                userId = identidade.utilizador,
-                elementKey = elemento,
-                durationMs = duracao,
-                messageKey = extras["message_key"],
-                messageKind = extras["message_kind"],
-            )
+            val ecra = ecraAtual
+            val versao = opcoes?.versaoApp ?: "0.0.0"
+            val nivel = configuracao.nivel
+            contar = true
             emitidos++
-            // A escrita em disco sai do fio principal: é o que o RNF-SDK-02 exige, e
-            // é a diferença entre um SDK que ninguém nota e um que faz a lista tremer.
-            emPlanoDeFundo { fila.juntar(ev) }
+            emPlanoDeFundo {
+                val ev = Evento(
+                    eventId = Ids.uuid(),
+                    anonymousId = identidade.anonimo,
+                    deviceId = identidade.dispositivo,
+                    sessionId = identidade.sessao(agora),
+                    eventType = tipo,
+                    screenKey = ecra,
+                    occurredAt = Relogio.iso(agora),
+                    appVersion = versao,
+                    captureLevel = nivel,
+                    userId = identidade.utilizador,
+                    elementKey = elemento,
+                    durationMs = duracao,
+                    messageKey = extras["message_key"],
+                    messageKind = extras["message_kind"],
+                )
+                fila.juntar(ev)
+            }
         }
-        msNoFioPrincipal += (System.nanoTime() - inicio) / 1_000_000.0
+        if (contar) msNoFioPrincipal += (System.nanoTime() - inicio) / 1_000_000.0
     }
 
     private fun emPlanoDeFundo(bloco: () -> Unit) {

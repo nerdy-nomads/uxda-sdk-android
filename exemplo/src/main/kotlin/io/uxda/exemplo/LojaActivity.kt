@@ -19,7 +19,7 @@ import java.io.IOException
  * Não há uma única chamada ao SDK aqui dentro, tirando o botão de entrar, que
  * existe para mostrar a ligação da identidade, e o painel de diagnóstico.
  */
-class LojaActivity : Activity() {
+class LojaActivity : androidx.appcompat.app.AppCompatActivity() {
 
     private val mao = Handler(Looper.getMainLooper())
     private lateinit var diagnostico: TextView
@@ -64,10 +64,19 @@ class LojaActivity : Activity() {
             startActivity(Intent(this, ComposeActivity::class.java))
         }
 
+        findViewById<Button>(R.id.apoio).setOnClickListener {
+            startActivity(Intent(this, ApoioActivity::class.java))
+        }
+
         mao.post(object : Runnable {
             override fun run() {
-                diagnostico.text = Ponte.diagnostico()
-                mao.postDelayed(this, 1000)
+                val d = Ponte.diagnostico()
+                diagnostico.text = d
+                // Também no registo do sistema: nos ensaios em dispositivo não há
+                // consola nem depurador, e é por aqui que os números saem sem
+                // ninguém os transcrever de uma captura de ecrã.
+                android.util.Log.i("UxdaExemplo", d.replace("\n", " "))
+                mao.postDelayed(this, 2000)
             }
         })
     }

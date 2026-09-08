@@ -41,8 +41,10 @@ class Identidade(private val prefs: SharedPreferences) {
         }
     }
 
-    val anonimo: String get() = persistente(K_ANON)
-    val dispositivo: String get() = persistente(K_DISP)
+    // Lidos uma vez e guardados: não mudam durante a vida do processo, e liam-se
+    // do disco a cada evento.
+    val anonimo: String by lazy { persistente(K_ANON) }
+    val dispositivo: String by lazy { persistente(K_DISP) }
 
     var utilizador: String?
         get() = prefs.getString(K_UTIL, null)
@@ -58,12 +60,42 @@ class Identidade(private val prefs: SharedPreferences) {
         return novo
     }
 
-    /** A sessão técnica morre ao fim de trinta minutos sem nada acontecer. */
+    private var sessaoEmMemoria: String? = null
+    private var sessaoTocadaEm = 0L
+    private var sessaoGravadaEm = 0L
+
+    /**
+     * A sessão técnica morre ao fim de trinta minutos sem nada acontecer.
+     *
+     * Guardada em memória e escrita no disco **no máximo de minuto a minuto**. Antes
+     * lia e escrevia nas preferências a cada evento, e isso corre no fio principal:
+     * a medição em gama baixa do cartão 3.4 apanhou-o. O que se perde ao gravar com
+     * menos frequência é, no pior caso, um minuto de atividade a mais numa sessão
+     * que o sistema tenha abatido, e isso não muda uma tentativa.
+     */
     fun sessao(agora: Long): String {
-        val guardada = prefs.getString(K_SESSAO, null)
-        val ultimo = prefs.getLong(K_SESSAO_EM, 0L)
-        val id = if (guardada == null || agora - ultimo > INATIVIDADE_MS) Ids.uuid() else guardada
-        prefs.edit().putString(K_SESSAO, id).putLong(K_SESSAO_EM, agora).apply()
+        val emMemoria = sessaoEmMemoria
+        val id = when {
+            emMemoria != null && agora - sessaoTocadaEm <= INATIVIDADE_MS -> emMemoria
+            else -> {
+                val guardada = prefs.getString(K_SESSAO, null)
+                val ultimo = prefs.getLong(K_SESSAO_EM, 0L)
+                if (guardada == null || agora - ultimo > INATIVIDADE_MS) Ids.uuid() else guardada
+            }
+        }
+        sessaoEmMemoria = id
+        sessaoTocadaEm = agora
+        if (agora - sessaoGravadaEm > 60_000L) {
+            sessaoGravadaEm = agora
+            prefs.edit().putString(K_SESSAO, id).putLong(K_SESSAO_EM, agora).apply()
+        }
         return id
+    }
+
+    /** Grava o que estiver por gravar. Chamado quando a aplicação vai para trás. */
+    fun guardarSessao() {
+        val id = sessaoEmMemoria ?: return
+        sessaoGravadaEm = sessaoTocadaEm
+        prefs.edit().putString(K_SESSAO, id).putLong(K_SESSAO_EM, sessaoTocadaEm).apply()
     }
 }
