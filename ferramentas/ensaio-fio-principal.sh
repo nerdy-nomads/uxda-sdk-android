@@ -49,7 +49,10 @@ fi
 
 POR_EVENTO=$(awk -v ms="$MS" -v n="$EVENTOS" 'BEGIN{printf "%.3f", ms/n}')
 MODELO=$("$ADB" shell getprop ro.product.model | tr -d '\r')
-NUCLEOS=$("$ADB" shell 'grep -c processor /proc/cpuinfo' | tr -d '\r')
+# `nproc`, e não `grep -c processor /proc/cpuinfo`: neste emulador o
+# `/proc/cpuinfo` traz a linha `model name: Android virtual processor`, que a
+# contagem apanhava, e um dispositivo de um núcleo aparecia com dois.
+NUCLEOS=$("$ADB" shell nproc | tr -d '\r')
 
 printf '  dispositivo                      %s, %s núcleo(s)\n' "$MODELO" "$NUCLEOS"
 printf '  eventos capturados               %s\n' "$EVENTOS"

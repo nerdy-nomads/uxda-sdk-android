@@ -90,6 +90,14 @@ object Uxda {
             val c = Captura(
                 emitir = { tipo, elemento, duracao, extras -> emitirEvento(tipo, elemento, duracao, extras) },
                 definirEcra = { ecraAtual = it },
+                medir = { bloco -> noFioPrincipal(bloco) },
+                aoIrParaTras = {
+                    // A sessão fica gravada e o que está em fila sai agora. O sistema
+                    // pode abater o processo no instante seguinte, e sem isto os
+                    // eventos ficavam à espera do próximo arranque da aplicação.
+                    identidade.guardarSessao()
+                    emPlanoDeFundo { fila.descarregar() }
+                },
             )
             captura = c
             aplicacao.registerActivityLifecycleCallbacks(c)
@@ -233,6 +241,31 @@ object Uxda {
      * dentro; com o identificador, o relógio e a sessão do outro lado, o fio
      * principal fica com o que não pode mesmo sair de cá.
      */
+    /**
+     * Cronometra um bloco que corre no fio principal da interface, e é o único sítio
+     * onde esse tempo se soma. RNF-SDK-05, cartão 3.4.
+     *
+     * O aninhamento é a razão de existir a bandeira: a leitura da vista chama a
+     * emissão do evento por dentro, e somar as duas em separado contava a segunda
+     * duas vezes. Quem estiver mais por fora é que conta.
+     */
+    private var aMedirFioPrincipal = false
+
+    private fun noFioPrincipal(bloco: () -> Unit) {
+        if (aMedirFioPrincipal) {
+            bloco()
+            return
+        }
+        val inicio = System.nanoTime()
+        aMedirFioPrincipal = true
+        try {
+            bloco()
+        } finally {
+            aMedirFioPrincipal = false
+            msNoFioPrincipal += (System.nanoTime() - inicio) / 1_000_000.0
+        }
+    }
+
     private fun emitirEvento(tipo: String, elemento: String?, duracao: Long?, extras: Map<String, String>) {
         val inicio = System.nanoTime()
         var contar = false
@@ -265,7 +298,9 @@ object Uxda {
                 fila.juntar(ev)
             }
         }
-        if (contar) msNoFioPrincipal += (System.nanoTime() - inicio) / 1_000_000.0
+        // Uma emissão que venha de fora da captura (o `track` de quem integra, por
+        // exemplo) conta aqui; a que vem de dentro já está dentro do bloco medido.
+        if (contar && !aMedirFioPrincipal) msNoFioPrincipal += (System.nanoTime() - inicio) / 1_000_000.0
     }
 
     private fun emPlanoDeFundo(bloco: () -> Unit) {

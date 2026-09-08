@@ -42,11 +42,21 @@ class Captura(
     private val definirEcra: (String) -> Unit,
     private val agora: () -> Long = { System.currentTimeMillis() },
     /**
-     * Onde se soma o tempo gasto no fio principal. **Inclui a leitura da vista**,
-     * que é a parte que não pode sair de cá: medir só o que vem depois dava um
-     * número bonito e falso.
+     * Envolve **todos** os pontos de entrada que correm no fio principal, e é assim
+     * que o tempo deles se soma. Envolver em vez de cronometrar por dentro é o que
+     * evita a conta errada: a leitura da vista e a emissão do evento acontecem uma
+     * dentro da outra, e medi-las em separado somava a segunda duas vezes.
+     *
+     * **Inclui a leitura da vista**, que é a parte que não pode sair daqui: medir
+     * só o que vem depois dava um número bonito e falso.
      */
-    private val medir: (nanos: Long) -> Unit = {},
+    private val medir: (bloco: () -> Unit) -> Unit = { it() },
+    /**
+     * Chamado quando a aplicação deixa de estar à vista. É onde a sessão se grava e
+     * onde a fila se despeja: é o instante em que uma tentativa costuma morrer, e o
+     * sistema pode abater o processo logo a seguir sem avisar.
+     */
+    private val aoIrParaTras: () -> Unit = {},
 ) : Application.ActivityLifecycleCallbacks {
 
     private var atividadesVisiveis = 0
@@ -62,25 +72,25 @@ class Captura(
 
     /* --------------------------------------------------------- ciclo de vida */
 
-    override fun onActivityCreated(a: Activity, b: Bundle?) = Seguranca.executar("captura.criada") {
+    override fun onActivityCreated(a: Activity, b: Bundle?) = medir { Seguranca.executar("captura.criada") {
         embrulharJanela(a)
-    }
+    } }
 
-    override fun onActivityStarted(a: Activity) = Seguranca.executar("captura.iniciada") {
+    override fun onActivityStarted(a: Activity) = medir { Seguranca.executar("captura.iniciada") {
         if (atividadesVisiveis == 0) emPrimeiroPlanoDesde = agora()
         atividadesVisiveis++
-    }
+    } }
 
-    override fun onActivityResumed(a: Activity) = Seguranca.executar("captura.retomada") {
+    override fun onActivityResumed(a: Activity) = medir { Seguranca.executar("captura.retomada") {
         definirEcra(nomeDoEcra(a))
         emitir(Tipos.ECRA, null, null, emptyMap())
         ligarFoco(a)
         registarFragmentos(a)
-    }
+    } }
 
     override fun onActivityPaused(a: Activity) = Unit
 
-    override fun onActivityStopped(a: Activity) = Seguranca.executar("captura.parada") {
+    override fun onActivityStopped(a: Activity) = medir { Seguranca.executar("captura.parada") {
         atividadesVisiveis--
         if (atividadesVisiveis <= 0) {
             atividadesVisiveis = 0
@@ -89,14 +99,15 @@ class Captura(
             // `visibilitychange`, e aqui é o sítio onde uma tentativa costuma
             // morrer: vale mais do que qualquer outro evento.
             emitir(Tipos.PLANO_FUNDO, null, tempoAtivoMs, emptyMap())
+            aoIrParaTras()
         }
-    }
+    } }
 
     override fun onActivitySaveInstanceState(a: Activity, b: Bundle) = Unit
 
-    override fun onActivityDestroyed(a: Activity) = Seguranca.executar("captura.destruida") {
+    override fun onActivityDestroyed(a: Activity) = medir { Seguranca.executar("captura.destruida") {
         if (a.isFinishing && atividadesVisiveis > 0) emitir(Tipos.RECUO, null, null, emptyMap())
-    }
+    } }
 
     private fun nomeDoEcra(a: Activity): String {
         val nome = a.javaClass.simpleName.removeSuffix("Activity").ifEmpty { a.javaClass.simpleName }
@@ -108,7 +119,9 @@ class Captura(
      * só toca no `androidx.fragment` depois de confirmar que ele existe.
      */
     private fun registarFragmentos(a: Activity) {
-        Fragmentos.ligar(a, definirEcra) { tipo -> emitir(tipo, null, null, emptyMap()) }
+        // O ciclo de vida dos fragmentos também corre no fio principal, e por isso
+        // entra na mesma conta.
+        Fragmentos.ligar(a, definirEcra) { tipo -> medir { emitir(tipo, null, null, emptyMap()) } }
     }
 
 
@@ -134,15 +147,13 @@ class Captura(
 
         override fun dispatchTouchEvent(ev: MotionEvent): Boolean {
             if (ev.action == MotionEvent.ACTION_UP) {
-                val inicio = System.nanoTime()
-                Seguranca.executar("captura.toque") { anotarToque(atividade, ev.rawX, ev.rawY) }
-                medir(System.nanoTime() - inicio)
+                medir { Seguranca.executar("captura.toque") { anotarToque(atividade, ev.rawX, ev.rawY) } }
             }
             return original.dispatchTouchEvent(ev)
         }
 
         override fun dispatchKeyEvent(ev: KeyEvent): Boolean {
-            Seguranca.executar("captura.tecla.janela") {
+            medir { Seguranca.executar("captura.tecla.janela") {
                 if (ev.action == KeyEvent.ACTION_UP && ev.keyCode == KeyEvent.KEYCODE_BACK) {
                     emitir(Tipos.RECUO, null, null, emptyMap())
                 }
@@ -152,7 +163,7 @@ class Captura(
                     val foco = atividade.currentFocus
                     if (foco is EditText) submeter(atividade, foco)
                 }
-            }
+            } }
             return original.dispatchKeyEvent(ev)
         }
     }
@@ -241,10 +252,10 @@ class Captura(
         val arvore = raiz.viewTreeObserver ?: return
         if (!arvore.isAlive) return
         arvore.addOnGlobalFocusChangeListener { antiga, nova ->
-            Seguranca.executar("captura.foco") {
+            medir { Seguranca.executar("captura.foco") {
                 antiga?.let { sairDoCampo(it) }
                 nova?.let { entrarNoCampo(it) }
-            }
+            } }
         }
     }
 
@@ -277,12 +288,12 @@ class Captura(
             override fun beforeTextChanged(s: CharSequence?, a: Int, b: Int, c: Int) = Unit
             override fun onTextChanged(s: CharSequence?, a: Int, b: Int, c: Int) = Unit
             override fun afterTextChanged(s: android.text.Editable?) {
-                Seguranca.executar("captura.tecla") {
+                medir { Seguranca.executar("captura.tecla") {
                     val estado = camposFocados[v.hashCode()] ?: return@executar
                     if (estado.jaEscreveu) return@executar
                     estado.jaEscreveu = true
                     emitir(Tipos.TECLA, estado.chave, agora() - estado.focadoEm, emptyMap())
-                }
+                } }
             }
         })
         encadearAcaoDoTeclado(v)
@@ -297,7 +308,7 @@ class Captura(
         Seguranca.executar("captura.acaoTeclado") {
             val anterior = ouvinteAtualDeAcao(v)
             v.setOnEditorActionListener { alvo, acao, evento ->
-                Seguranca.executar("captura.submissao") {
+                medir { Seguranca.executar("captura.submissao") {
                     if (acao == android.view.inputmethod.EditorInfo.IME_ACTION_DONE ||
                         acao == android.view.inputmethod.EditorInfo.IME_ACTION_GO ||
                         acao == android.view.inputmethod.EditorInfo.IME_ACTION_SEND ||
@@ -305,7 +316,7 @@ class Captura(
                     ) {
                         (alvo.context as? Activity)?.let { submeter(it, alvo as View) }
                     }
-                }
+                } }
                 anterior?.onEditorAction(alvo, acao, evento) ?: false
             }
         }
