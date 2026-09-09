@@ -1,0 +1,16 @@
+ensaio de captura granular, 2026-09-09T08:37:05Z
+dispositivo: sdk_gphone64_x86_64, Android 16, 4 núcleo(s)
+
+event_type	n	propriedades
+campo	9	{"caracteres_apagados":2,"caracteres_escritos":10,"hesitacao_ms":1025,"ordem":2,"ordem_prevista":2,"origem":"manual","regressos":0}
+ecra	1	{}
+espera	4	{}
+foco	3	{}
+passo	1	{"passo":"/loja"}
+primeira_interacao	1	{}
+submissao	2	{"campos_com_erro":0,"campos_preenchidos":3,"campos_vazios":0}
+toque	8	{}
+toque_desativado	1	{"alvo_desativado":true,"zona":"3x5"}
+toque_em_carregamento	3	{"em_carregamento":true}
+toque_repetido	1	{"intervalo_ms":332,"repeticoes":4}
+toque_sem_alvo	1	{"zona":"3x4"}

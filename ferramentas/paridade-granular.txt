@@ -1,0 +1,45 @@
+
+Sequência de cada plataforma, nos últimos 9 minutos
+
+platform	primeiros_40	total
+android	ecra > passo > foco > ecra > passo > primeira_interacao > toque > toque_desativado > toque > espera > toque > espera > toque > espera > toque > espera > foco > toque > toque > campo > foco > toque > campo > foco > campo > campo > campo > campo > submissao > campo > campo > campo > submissao > toque > ecra > passo > primeira_interacao > toque_sem_alvo > toque_desativado > toque	71
+web	plano_fundo > ecra > passo > ecra > primeira_interacao > toque_sem_alvo > toque_desativado > toque > toque_em_carregamento > toque_em_carregamento > toque_em_carregamento > foco > campo > toque_repetido > foco > campo > foco > campo > campo > campo > campo > campo > campo > submissao > erro > foco > ambiente > ambiente > ambiente > ambiente	30
+
+Os mesmos tipos, contados dos dois lados
+
+event_type	web	android	nos_dois
+ambiente	4	0	NAO
+campo	8	18	sim
+ecra	2	3	sim
+erro	1	1	sim
+espera	0	8	NAO
+foco	4	7	sim
+passo	1	3	sim
+plano_fundo	1	0	NAO
+primeira_interacao	1	2	sim
+submissao	1	4	sim
+toque	1	18	sim
+toque_desativado	1	2	sim
+toque_em_carregamento	3	3	sim
+toque_repetido	1	1	sim
+toque_sem_alvo	1	1	sim
+
+O contrato: os campos que cada plataforma preenche
+
+platform	eventos	ecras	com_elemento	com_duracao	versoes	com_pseudonimo
+android	71	1	54	29	1	71
+web	30	1	20	5	1	0
+
+Hesitação medida nos campos, dos dois lados
+A norma do RF-EST-04 manda a mediana e o p90 ao lado da média, sempre.
+
+platform	n	media_ms	mediana_ms	p90_ms
+
+Tempo ativo, no momento em que a aplicação deixa de estar à vista
+É o evento que fecha uma tentativa, e o número tem de existir dos dois lados:
+sem ele numa plataforma, a comparação entre canais da mesma organização
+(RF-ADM-10) fica com metade da conta.
+
+platform	n	com_tempo_ativo	media_ms	mediana_ms	p90_ms
+web	1	1	749696	749696	749696
+

@@ -43,5 +43,7 @@ object Ponte {
     fun identificar(id: String) = Unit
     fun track(nome: String) = Unit
     fun ecra(nome: String) = Unit
+    fun pedidoComecou() = Unit
+    fun pedidoAcabou(ms: Long) = Unit
     fun intercetor(): Interceptor = Interceptor { cadeia -> cadeia.proceed(cadeia.request()) }
 }

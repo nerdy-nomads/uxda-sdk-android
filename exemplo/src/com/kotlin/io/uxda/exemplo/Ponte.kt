@@ -15,5 +15,7 @@ object Ponte {
     fun identificar(id: String) = Uxda.identificar(id)
     fun track(nome: String) = Uxda.track(nome)
     fun ecra(nome: String) = Uxda.ecra(nome)
+    fun pedidoComecou() = Uxda.pedidoComecou()
+    fun pedidoAcabou(ms: Long) = Uxda.pedidoAcabou(ms)
     fun intercetor() = UxdaOkHttp.intercetor()
 }

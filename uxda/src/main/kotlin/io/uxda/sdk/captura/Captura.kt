@@ -207,7 +207,14 @@ class Captura(
         val vista = vistaNoPonto(raiz, x, y)
         // Um toque onde não havia nada acionável. É o sinal que o documento chama
         // dos mais subvalorizados que existem, e que nenhum funil revela.
-        if (vista == null) {
+        //
+        // A pergunta não é "encontrei uma vista", é "encontrei uma vista em que se
+        // pode carregar". O `vistaNoPonto` devolve sempre alguma coisa, porque a
+        // subida até ao acionável tem de acabar em algum lado, e sem esta segunda
+        // pergunta um toque no meio de um texto contava como um toque com efeito.
+        val acionavel = vista != null &&
+            (Elemento.acionavel(vista) || ElementoCompose.ehCompose(vista) || toques.estaDesativado(vista))
+        if (!acionavel) {
             toques.semAlvo(x, y, raiz.width, raiz.height)
             return
         }

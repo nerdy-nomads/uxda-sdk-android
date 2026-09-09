@@ -68,6 +68,33 @@
             android:layout_height="wrap_content"
             android:text="Pedido que falha" />
 
+        <!--
+            As três armadilhas do cartão 4.1, e existem para se ver o que nenhuma
+            ferramenta de funis mostra: um funil vê os passos que aconteceram, e
+            nada disto é um passo.
+        -->
+        <TextView
+            android:id="@+id/zona_morta"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="#EFEAF7"
+            android:gravity="center"
+            android:padding="16dp"
+            android:text="Precisa de ajuda? Fale connosco" />
+
+        <Button
+            android:id="@+id/confirmar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:enabled="false"
+            android:text="Confirmar encomenda" />
+
+        <Button
+            android:id="@+id/lento"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Botão lento (2 segundos)" />
+
         <Button
             android:id="@+id/compose"
             android:layout_width="match_parent"

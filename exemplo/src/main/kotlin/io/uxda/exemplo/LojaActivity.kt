@@ -60,6 +60,16 @@ class LojaActivity : androidx.appcompat.app.AppCompatActivity() {
             }.start()
         }
 
+        // O botão lento fica ocupado dois segundos e não diz nada a ninguém. É
+        // onde se vê o toque em carregamento e o toque repetido, que são o
+        // sistema a não responder à vista de quem está do outro lado.
+        findViewById<Button>(R.id.lento).setOnClickListener {
+            // Dois segundos ocupado, e sem depender de rede nenhuma: um ensaio que
+            // só funciona com internet é um ensaio que não corre quando faz falta.
+            Ponte.pedidoComecou()
+            mao.postDelayed({ Ponte.pedidoAcabou(2000) }, 2000)
+        }
+
         findViewById<Button>(R.id.compose).setOnClickListener {
             startActivity(Intent(this, ComposeActivity::class.java))
         }
