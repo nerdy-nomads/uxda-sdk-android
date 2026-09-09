@@ -21,6 +21,11 @@ object UxdaOkHttp {
 
     fun intercetor(): Interceptor = Interceptor { cadeia ->
         val pedido = cadeia.request()
+        // Um pedido em voo é a aplicação ocupada: é o que separa um toque que não
+        // deu nada de um toque dado **enquanto o sistema estava a trabalhar**
+        // (RF-GRA-05), e é o que mede a espera imposta (RF-GRA-21).
+        val comecou = System.currentTimeMillis()
+        Uxda.pedidoComecou()
         try {
             val resposta: Response = cadeia.proceed(pedido)
             // 5xx é falha do servidor; 4xx é a aplicação a dizer que não, e isso é
@@ -30,6 +35,10 @@ object UxdaOkHttp {
         } catch (e: Throwable) {
             Uxda.erroDeRede(pedido.url.toString(), 0)
             throw e
+        } finally {
+            // Corre sempre, com sucesso ou sem ele: um contador de pedidos em voo
+            // que não desce passa a dizer que a aplicação está ocupada para sempre.
+            Uxda.pedidoAcabou(System.currentTimeMillis() - comecou)
         }
     }
 }

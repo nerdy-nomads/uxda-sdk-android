@@ -38,7 +38,13 @@ import io.uxda.sdk.identidade.ElementoCompose
  * que não há um único caminho sem `Seguranca`.
  */
 class Captura(
-    private val emitir: (tipo: String, elemento: String?, duracao: Long?, extras: Map<String, String>) -> Unit,
+    private val emitir: (
+        tipo: String,
+        elemento: String?,
+        duracao: Long?,
+        extras: Map<String, String>,
+        propriedades: Map<String, Any>?,
+    ) -> Unit,
     private val definirEcra: (String) -> Unit,
     private val agora: () -> Long = { System.currentTimeMillis() },
     /**
@@ -57,7 +63,23 @@ class Captura(
      * sistema pode abater o processo logo a seguir sem avisar.
      */
     private val aoIrParaTras: () -> Unit = {},
+    /** O nível de captura em vigor, que decide o que sai e o que não sai. */
+    private val nivel: () -> String = { "padrao" },
+    /** Pedidos da aplicação em voo, para saber se ela está ocupada (RF-GRA-05). */
+    private val emVoo: () -> Int = { 0 },
 ) : Application.ActivityLifecycleCallbacks {
+
+    /* ------------------------------------------------------ captura granular */
+
+    private val detalhado = { nivel() == "detalhado" }
+    private val essencial = { nivel() == "essencial" }
+
+    private val emitirGranular: (String, String?, Long?, Map<String, Any>?) -> Unit =
+        { tipo, elemento, duracao, props -> emitir(tipo, elemento, duracao, emptyMap(), props) }
+
+    private val toques = Toques(emitirGranular, { agora() }, detalhado)
+    private val campos = Campos(emitirGranular, { agora() }, detalhado, essencial)
+    internal val progressao = Progressao(emitirGranular, { agora() }, essencial) { campos.campoDeAbandono() }
 
     private var atividadesVisiveis = 0
     private var emPrimeiroPlanoDesde = 0L
@@ -65,10 +87,8 @@ class Captura(
     var tempoAtivoMs = 0L
         private set
     private var ultimaTeclaEm = HashMap<Int, Long>()
-    private val camposFocados = HashMap<Int, EstadoCampo>()
     private var errosVistos = HashSet<String>()
 
-    private class EstadoCampo(val focadoEm: Long, val chave: String?, var jaEscreveu: Boolean)
 
     /* --------------------------------------------------------- ciclo de vida */
 
@@ -83,7 +103,13 @@ class Captura(
 
     override fun onActivityResumed(a: Activity) = medir { Seguranca.executar("captura.retomada") {
         definirEcra(nomeDoEcra(a))
-        emitir(Tipos.ECRA, null, null, emptyMap())
+        emitir(Tipos.ECRA, null, null, emptyMap(), null)
+        // Um ecrã novo é um passo novo, e é onde a contagem até à primeira
+        // interação recomeça: o RF-GRA-08 mede-a por ecrã, e não por sessão.
+        toques.ecraNovo()
+        progressao.passo(nomeDoEcra(a))
+        campos.mostrar()
+        progressao.mostrar()
         ligarFoco(a)
         registarFragmentos(a)
     } }
@@ -98,15 +124,20 @@ class Captura(
             // A aplicação deixou de estar à vista. Na web isto é o
             // `visibilitychange`, e aqui é o sítio onde uma tentativa costuma
             // morrer: vale mais do que qualquer outro evento.
-            emitir(Tipos.PLANO_FUNDO, null, tempoAtivoMs, emptyMap())
+            emitir(Tipos.PLANO_FUNDO, null, tempoAtivoMs, emptyMap(), null)
+            toques.fecharRajada()
+            campos.esconder()
             aoIrParaTras()
+            // O abandono marca-se **depois** do plano de fundo: a ordem no
+            // armazenamento passa a ser a ordem em que as coisas aconteceram.
+            progressao.esconder()
         }
     } }
 
     override fun onActivitySaveInstanceState(a: Activity, b: Bundle) = Unit
 
     override fun onActivityDestroyed(a: Activity) = medir { Seguranca.executar("captura.destruida") {
-        if (a.isFinishing && atividadesVisiveis > 0) emitir(Tipos.RECUO, null, null, emptyMap())
+        if (a.isFinishing && atividadesVisiveis > 0) emitir(Tipos.RECUO, null, null, emptyMap(), null)
     } }
 
     private fun nomeDoEcra(a: Activity): String {
@@ -121,7 +152,7 @@ class Captura(
     private fun registarFragmentos(a: Activity) {
         // O ciclo de vida dos fragmentos também corre no fio principal, e por isso
         // entra na mesma conta.
-        Fragmentos.ligar(a, definirEcra) { tipo -> medir { emitir(tipo, null, null, emptyMap()) } }
+        Fragmentos.ligar(a, definirEcra) { tipo -> medir { emitir(tipo, null, null, emptyMap(), null) } }
     }
 
 
@@ -155,7 +186,7 @@ class Captura(
         override fun dispatchKeyEvent(ev: KeyEvent): Boolean {
             medir { Seguranca.executar("captura.tecla.janela") {
                 if (ev.action == KeyEvent.ACTION_UP && ev.keyCode == KeyEvent.KEYCODE_BACK) {
-                    emitir(Tipos.RECUO, null, null, emptyMap())
+                    emitir(Tipos.RECUO, null, null, emptyMap(), null)
                 }
                 if (ev.action == KeyEvent.ACTION_UP &&
                     (ev.keyCode == KeyEvent.KEYCODE_ENTER || ev.keyCode == KeyEvent.KEYCODE_NUMPAD_ENTER)
@@ -170,9 +201,27 @@ class Captura(
 
     private fun anotarToque(a: Activity, x: Float, y: Float) {
         val raiz = a.window?.decorView ?: return
-        val vista = vistaNoPonto(raiz, x, y) ?: return
-        val chave = chaveDe(vista, x, y) ?: return
-        emitir(Tipos.TOQUE, chave, null, emptyMap())
+        toques.primeiraInteracao()
+        progressao.marcarAtividade()
+
+        val vista = vistaNoPonto(raiz, x, y)
+        // Um toque onde não havia nada acionável. É o sinal que o documento chama
+        // dos mais subvalorizados que existem, e que nenhum funil revela.
+        if (vista == null) {
+            toques.semAlvo(x, y, raiz.width, raiz.height)
+            return
+        }
+        val chave = chaveDe(vista, x, y)
+        // Um botão desativado, e ninguém lhe disse porquê. Em Android a vista está
+        // na árvore e vê-se; na web o browser nem despacha o evento.
+        if (toques.estaDesativado(vista)) {
+            toques.desativado(chave, x, y, raiz.width, raiz.height)
+            return
+        }
+        if (chave == null) return
+        if (emVoo() > 0) toques.emCarregamento(chave)
+        toques.anotar(chave)
+        emitir(Tipos.TOQUE, chave, null, emptyMap(), null)
         // A validação da plataforma aparece **depois** de uma ação, e não a cada
         // toque: um `setError` num campo é o `invalid` da web, e quem o dispara é
         // carregar num botão, não pousar o dedo numa lista.
@@ -271,43 +320,17 @@ class Captura(
 
     private fun entrarNoCampo(v: View) {
         if (v !is EditText) return
-        val chave = Elemento.chaveDe(v).ifEmpty { null }
-        camposFocados[v.hashCode()] = EstadoCampo(agora(), chave, false)
-        emitir(Tipos.FOCO, chave, null, emptyMap())
-        ouvirPrimeiraTecla(v)
+        // Quem guarda o estado do campo é o agregador: hesitação, contagens,
+        // regressos e ordem saem todos num evento só, no desfoco (RF-GRA-29).
+        campos.entrar(v)
+        encadearAcaoDoTeclado(v)
     }
 
     private fun sairDoCampo(v: View) {
         if (v !is EditText) return
-        val estado = camposFocados.remove(v.hashCode())
-        val duracao = estado?.let { agora() - it.focadoEm }
-        emitir(Tipos.DESFOCO, estado?.chave ?: Elemento.chaveDe(v).ifEmpty { null }, duracao, emptyMap())
+        campos.sair(v)
     }
 
-    /**
-     * **A primeira tecla, e nunca o que foi escrito.** Um teclado virtual não envia
-     * teclas: envia texto já composto. Por isso o sinal é a primeira alteração do
-     * campo depois do foco, e o que se guarda é o tempo até lá (a hesitação), sem
-     * ler um único caractere.
-     */
-    private fun ouvirPrimeiraTecla(v: EditText) {
-        val marca = v.getTag(TAG_OUVINTE)
-        if (marca == true) return
-        v.setTag(TAG_OUVINTE, true)
-        v.addTextChangedListener(object : android.text.TextWatcher {
-            override fun beforeTextChanged(s: CharSequence?, a: Int, b: Int, c: Int) = Unit
-            override fun onTextChanged(s: CharSequence?, a: Int, b: Int, c: Int) = Unit
-            override fun afterTextChanged(s: android.text.Editable?) {
-                medir { Seguranca.executar("captura.tecla") {
-                    val estado = camposFocados[v.hashCode()] ?: return@executar
-                    if (estado.jaEscreveu) return@executar
-                    estado.jaEscreveu = true
-                    emitir(Tipos.TECLA, estado.chave, agora() - estado.focadoEm, emptyMap())
-                } }
-            }
-        })
-        encadearAcaoDoTeclado(v)
-    }
 
     /**
      * A ação do teclado (Enviar, Seguinte, Concluído) é o `submit` da web. Encadeia
@@ -392,7 +415,18 @@ class Captura(
     }
 
     private fun submeter(a: Activity, origem: View) {
-        emitir(Tipos.SUBMISSAO, Elemento.chaveDe(origem).ifEmpty { null }, null, emptyMap())
+        // O retrato de cada campo sai primeiro, e a contagem vai no próprio evento
+        // de submissão: quem olha para ela vê logo se foi feita com metade do
+        // formulário vazio (RF-GRA-19).
+        val (preenchidos, vazios, comErro) = campos.aoSubmeter(a.window?.decorView)
+        emitir(
+            Tipos.SUBMISSAO, Elemento.chaveDe(origem).ifEmpty { null }, null, emptyMap(),
+            mapOf(
+                "campos_preenchidos" to preenchidos,
+                "campos_vazios" to vazios,
+                "campos_com_erro" to comErro,
+            ),
+        )
         a.window?.decorView?.let { procurarErros(it) }
     }
 
@@ -418,7 +452,13 @@ class Captura(
                     val id = chave ?: v.hashCode().toString()
                     encontrados.add(id)
                     if (id !in errosVistos) {
-                        emitir(Tipos.ERRO, chave, null, mapOf("message_key" to "validacao_nativa", "message_kind" to "erro"))
+                        // Quem conta as tentativas até resolver é o agregador, que
+                        // sabe quantas vezes aquele campo já falhou (RF-GRA-17).
+                        emitir(
+                            Tipos.ERRO, chave, null,
+                            mapOf("message_key" to "validacao_nativa", "message_kind" to "erro"),
+                            campos.aoErrar(v, "validacao_nativa"),
+                        )
                     }
                 }
             }

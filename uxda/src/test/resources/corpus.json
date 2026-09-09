@@ -1,83 +1,446 @@
 {
   "$comment": "Corpo de provas partilhado. Os dois validadores (Go e TypeScript) correm exactamente estes casos e têm de dar o mesmo veredicto. É isto que prova que o esquema é o mesmo dos dois lados, e não a boa vontade de quem escreveu cada um.",
   "casos": [
-    { "nome": "evento mínimo válido", "valido": true, "evento": {
-      "event_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3301", "project_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3302",
-      "organization_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3303", "anonymous_id": "a1", "device_id": "d1",
-      "session_id": "s1", "event_type": "ecra", "screen_key": "inicio", "occurred_at": "2026-09-07T10:00:00Z",
-      "app_version": "1.0.0", "platform": "web", "identity_scope": "aplicacao", "capture_level": "padrao" } },
-
-    { "nome": "evento completo válido", "valido": true, "evento": {
-      "event_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3311", "project_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3312",
-      "organization_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3313", "anonymous_id": "a1", "user_id": "u-opaco-1",
-      "device_id": "d1", "session_id": "s1", "event_type": "mensagem", "screen_key": "pagamento",
-      "element_key": "testid=btn-pagar", "occurred_at": "2026-09-07T10:00:00Z", "clock_offset_ms": -1200,
-      "app_version": "1.0.0", "platform": "android", "identity_scope": "organizacao", "capture_level": "detalhado",
-      "message_key": "saldo_insuficiente", "message_kind": "erro", "duration_ms": 4200,
-      "properties": { "valor_monetario": 1200, "moeda": "AOA" } } },
-
-    { "nome": "falta um campo obrigatório", "valido": false, "erros_esperados": ["capture_level:obrigatorio"], "evento": {
-      "event_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3321", "project_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3322",
-      "organization_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3323", "anonymous_id": "a1", "device_id": "d1",
-      "session_id": "s1", "event_type": "ecra", "screen_key": "inicio", "occurred_at": "2026-09-07T10:00:00Z",
-      "app_version": "1.0.0", "platform": "web", "identity_scope": "aplicacao" } },
-
-    { "nome": "tipo de evento fora da lista", "valido": false, "erros_esperados": ["event_type:valor"], "evento": {
-      "event_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3331", "project_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3332",
-      "organization_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3333", "anonymous_id": "a1", "device_id": "d1",
-      "session_id": "s1", "event_type": "clique", "screen_key": "inicio", "occurred_at": "2026-09-07T10:00:00Z",
-      "app_version": "1.0.0", "platform": "web", "identity_scope": "aplicacao", "capture_level": "padrao" } },
-
-    { "nome": "UUID malformado", "valido": false, "erros_esperados": ["project_id:valor"], "evento": {
-      "event_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3341", "project_id": "nao-e-um-uuid",
-      "organization_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3343", "anonymous_id": "a1", "device_id": "d1",
-      "session_id": "s1", "event_type": "ecra", "screen_key": "inicio", "occurred_at": "2026-09-07T10:00:00Z",
-      "app_version": "1.0.0", "platform": "web", "identity_scope": "aplicacao", "capture_level": "padrao" } },
-
-    { "nome": "instante que não é RFC 3339", "valido": false, "erros_esperados": ["occurred_at:valor"], "evento": {
-      "event_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3351", "project_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3352",
-      "organization_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3353", "anonymous_id": "a1", "device_id": "d1",
-      "session_id": "s1", "event_type": "ecra", "screen_key": "inicio", "occurred_at": "07/09/2026 10:00",
-      "app_version": "1.0.0", "platform": "web", "identity_scope": "aplicacao", "capture_level": "padrao" } },
-
-    { "nome": "relógio partido: desvio de mais de um dia", "valido": false, "erros_esperados": ["clock_offset_ms:valor"], "evento": {
-      "event_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3361", "project_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3362",
-      "organization_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3363", "anonymous_id": "a1", "device_id": "d1",
-      "session_id": "s1", "event_type": "ecra", "screen_key": "inicio", "occurred_at": "2026-09-07T10:00:00Z",
-      "clock_offset_ms": 999999999, "app_version": "1.0.0", "platform": "web", "identity_scope": "aplicacao",
-      "capture_level": "padrao" } },
-
-    { "nome": "mensagem sem chave nem texto", "valido": false, "erros_esperados": ["message_key:regra","message_kind:regra"], "evento": {
-      "event_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3371", "project_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3372",
-      "organization_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3373", "anonymous_id": "a1", "device_id": "d1",
-      "session_id": "s1", "event_type": "mensagem", "screen_key": "inicio", "occurred_at": "2026-09-07T10:00:00Z",
-      "app_version": "1.0.0", "platform": "web", "identity_scope": "aplicacao", "capture_level": "padrao" } },
-
-    { "nome": "campo que o esquema não conhece", "valido": false, "erros_esperados": ["texto_do_campo:campo_desconhecido"], "evento": {
-      "event_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3381", "project_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3382",
-      "organization_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3383", "anonymous_id": "a1", "device_id": "d1",
-      "session_id": "s1", "event_type": "tecla", "screen_key": "inicio", "occurred_at": "2026-09-07T10:00:00Z",
-      "app_version": "1.0.0", "platform": "web", "identity_scope": "aplicacao", "capture_level": "padrao",
-      "texto_do_campo": "005123456LA041" } },
-
-    { "nome": "propriedade fora da lista de permitidas", "valido": false, "erros_esperados": ["properties:valor"], "evento": {
-      "event_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3391", "project_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3392",
-      "organization_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3393", "anonymous_id": "a1", "device_id": "d1",
-      "session_id": "s1", "event_type": "ecra", "screen_key": "inicio", "occurred_at": "2026-09-07T10:00:00Z",
-      "app_version": "1.0.0", "platform": "web", "identity_scope": "aplicacao", "capture_level": "padrao",
-      "properties": { "nome_do_cliente": "Ana Silva" } } },
-
-    { "nome": "propriedade permitida mas longa de mais: parece conteúdo", "valido": false, "erros_esperados": ["properties:tamanho"], "evento": {
-      "event_id": "3f2504e0-4f89-41d3-9a0c-0305e82c33a1", "project_id": "3f2504e0-4f89-41d3-9a0c-0305e82c33a2",
-      "organization_id": "3f2504e0-4f89-41d3-9a0c-0305e82c33a3", "anonymous_id": "a1", "device_id": "d1",
-      "session_id": "s1", "event_type": "ecra", "screen_key": "inicio", "occurred_at": "2026-09-07T10:00:00Z",
-      "app_version": "1.0.0", "platform": "web", "identity_scope": "aplicacao", "capture_level": "padrao",
-      "properties": { "segmento": "isto e um texto muito comprido que parece conteudo escrito por alguem e nao um segmento" } } },
-
-    { "nome": "âmbito de identidade fora da lista", "valido": false, "erros_esperados": ["identity_scope:valor"], "evento": {
-      "event_id": "3f2504e0-4f89-41d3-9a0c-0305e82c33b1", "project_id": "3f2504e0-4f89-41d3-9a0c-0305e82c33b2",
-      "organization_id": "3f2504e0-4f89-41d3-9a0c-0305e82c33b3", "anonymous_id": "a1", "device_id": "d1",
-      "session_id": "s1", "event_type": "ecra", "screen_key": "inicio", "occurred_at": "2026-09-07T10:00:00Z",
-      "app_version": "1.0.0", "platform": "web", "identity_scope": "global", "capture_level": "padrao" } }
+    {
+      "nome": "evento mínimo válido",
+      "valido": true,
+      "evento": {
+        "event_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3301",
+        "project_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3302",
+        "organization_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3303",
+        "anonymous_id": "a1",
+        "device_id": "d1",
+        "session_id": "s1",
+        "event_type": "ecra",
+        "screen_key": "inicio",
+        "occurred_at": "2026-09-07T10:00:00Z",
+        "app_version": "1.0.0",
+        "platform": "web",
+        "identity_scope": "aplicacao",
+        "capture_level": "padrao"
+      }
+    },
+    {
+      "nome": "evento completo válido",
+      "valido": true,
+      "evento": {
+        "event_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3311",
+        "project_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3312",
+        "organization_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3313",
+        "anonymous_id": "a1",
+        "user_id": "u-opaco-1",
+        "device_id": "d1",
+        "session_id": "s1",
+        "event_type": "mensagem",
+        "screen_key": "pagamento",
+        "element_key": "testid=btn-pagar",
+        "occurred_at": "2026-09-07T10:00:00Z",
+        "clock_offset_ms": -1200,
+        "app_version": "1.0.0",
+        "platform": "android",
+        "identity_scope": "organizacao",
+        "capture_level": "detalhado",
+        "message_key": "saldo_insuficiente",
+        "message_kind": "erro",
+        "duration_ms": 4200,
+        "properties": {
+          "valor_monetario": 1200,
+          "moeda": "AOA"
+        }
+      }
+    },
+    {
+      "nome": "falta um campo obrigatório",
+      "valido": false,
+      "erros_esperados": [
+        "capture_level:obrigatorio"
+      ],
+      "evento": {
+        "event_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3321",
+        "project_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3322",
+        "organization_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3323",
+        "anonymous_id": "a1",
+        "device_id": "d1",
+        "session_id": "s1",
+        "event_type": "ecra",
+        "screen_key": "inicio",
+        "occurred_at": "2026-09-07T10:00:00Z",
+        "app_version": "1.0.0",
+        "platform": "web",
+        "identity_scope": "aplicacao"
+      }
+    },
+    {
+      "nome": "tipo de evento fora da lista",
+      "valido": false,
+      "erros_esperados": [
+        "event_type:valor"
+      ],
+      "evento": {
+        "event_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3331",
+        "project_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3332",
+        "organization_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3333",
+        "anonymous_id": "a1",
+        "device_id": "d1",
+        "session_id": "s1",
+        "event_type": "clique",
+        "screen_key": "inicio",
+        "occurred_at": "2026-09-07T10:00:00Z",
+        "app_version": "1.0.0",
+        "platform": "web",
+        "identity_scope": "aplicacao",
+        "capture_level": "padrao"
+      }
+    },
+    {
+      "nome": "UUID malformado",
+      "valido": false,
+      "erros_esperados": [
+        "project_id:valor"
+      ],
+      "evento": {
+        "event_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3341",
+        "project_id": "nao-e-um-uuid",
+        "organization_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3343",
+        "anonymous_id": "a1",
+        "device_id": "d1",
+        "session_id": "s1",
+        "event_type": "ecra",
+        "screen_key": "inicio",
+        "occurred_at": "2026-09-07T10:00:00Z",
+        "app_version": "1.0.0",
+        "platform": "web",
+        "identity_scope": "aplicacao",
+        "capture_level": "padrao"
+      }
+    },
+    {
+      "nome": "instante que não é RFC 3339",
+      "valido": false,
+      "erros_esperados": [
+        "occurred_at:valor"
+      ],
+      "evento": {
+        "event_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3351",
+        "project_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3352",
+        "organization_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3353",
+        "anonymous_id": "a1",
+        "device_id": "d1",
+        "session_id": "s1",
+        "event_type": "ecra",
+        "screen_key": "inicio",
+        "occurred_at": "07/09/2026 10:00",
+        "app_version": "1.0.0",
+        "platform": "web",
+        "identity_scope": "aplicacao",
+        "capture_level": "padrao"
+      }
+    },
+    {
+      "nome": "relógio partido: desvio de mais de um dia",
+      "valido": false,
+      "erros_esperados": [
+        "clock_offset_ms:valor"
+      ],
+      "evento": {
+        "event_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3361",
+        "project_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3362",
+        "organization_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3363",
+        "anonymous_id": "a1",
+        "device_id": "d1",
+        "session_id": "s1",
+        "event_type": "ecra",
+        "screen_key": "inicio",
+        "occurred_at": "2026-09-07T10:00:00Z",
+        "clock_offset_ms": 999999999,
+        "app_version": "1.0.0",
+        "platform": "web",
+        "identity_scope": "aplicacao",
+        "capture_level": "padrao"
+      }
+    },
+    {
+      "nome": "mensagem sem chave nem texto",
+      "valido": false,
+      "erros_esperados": [
+        "message_key:regra",
+        "message_kind:regra"
+      ],
+      "evento": {
+        "event_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3371",
+        "project_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3372",
+        "organization_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3373",
+        "anonymous_id": "a1",
+        "device_id": "d1",
+        "session_id": "s1",
+        "event_type": "mensagem",
+        "screen_key": "inicio",
+        "occurred_at": "2026-09-07T10:00:00Z",
+        "app_version": "1.0.0",
+        "platform": "web",
+        "identity_scope": "aplicacao",
+        "capture_level": "padrao"
+      }
+    },
+    {
+      "nome": "campo que o esquema não conhece",
+      "valido": false,
+      "erros_esperados": [
+        "texto_do_campo:campo_desconhecido"
+      ],
+      "evento": {
+        "event_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3381",
+        "project_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3382",
+        "organization_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3383",
+        "anonymous_id": "a1",
+        "device_id": "d1",
+        "session_id": "s1",
+        "event_type": "tecla",
+        "screen_key": "inicio",
+        "occurred_at": "2026-09-07T10:00:00Z",
+        "app_version": "1.0.0",
+        "platform": "web",
+        "identity_scope": "aplicacao",
+        "capture_level": "padrao",
+        "texto_do_campo": "005123456LA041"
+      }
+    },
+    {
+      "nome": "propriedade fora da lista de permitidas",
+      "valido": false,
+      "erros_esperados": [
+        "properties:valor"
+      ],
+      "evento": {
+        "event_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3391",
+        "project_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3392",
+        "organization_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3393",
+        "anonymous_id": "a1",
+        "device_id": "d1",
+        "session_id": "s1",
+        "event_type": "ecra",
+        "screen_key": "inicio",
+        "occurred_at": "2026-09-07T10:00:00Z",
+        "app_version": "1.0.0",
+        "platform": "web",
+        "identity_scope": "aplicacao",
+        "capture_level": "padrao",
+        "properties": {
+          "nome_do_cliente": "Ana Silva"
+        }
+      }
+    },
+    {
+      "nome": "propriedade permitida mas longa de mais: parece conteúdo",
+      "valido": false,
+      "erros_esperados": [
+        "properties:tamanho"
+      ],
+      "evento": {
+        "event_id": "3f2504e0-4f89-41d3-9a0c-0305e82c33a1",
+        "project_id": "3f2504e0-4f89-41d3-9a0c-0305e82c33a2",
+        "organization_id": "3f2504e0-4f89-41d3-9a0c-0305e82c33a3",
+        "anonymous_id": "a1",
+        "device_id": "d1",
+        "session_id": "s1",
+        "event_type": "ecra",
+        "screen_key": "inicio",
+        "occurred_at": "2026-09-07T10:00:00Z",
+        "app_version": "1.0.0",
+        "platform": "web",
+        "identity_scope": "aplicacao",
+        "capture_level": "padrao",
+        "properties": {
+          "segmento": "isto e um texto muito comprido que parece conteudo escrito por alguem e nao um segmento"
+        }
+      }
+    },
+    {
+      "nome": "âmbito de identidade fora da lista",
+      "valido": false,
+      "erros_esperados": [
+        "identity_scope:valor"
+      ],
+      "evento": {
+        "event_id": "3f2504e0-4f89-41d3-9a0c-0305e82c33b1",
+        "project_id": "3f2504e0-4f89-41d3-9a0c-0305e82c33b2",
+        "organization_id": "3f2504e0-4f89-41d3-9a0c-0305e82c33b3",
+        "anonymous_id": "a1",
+        "device_id": "d1",
+        "session_id": "s1",
+        "event_type": "ecra",
+        "screen_key": "inicio",
+        "occurred_at": "2026-09-07T10:00:00Z",
+        "app_version": "1.0.0",
+        "platform": "web",
+        "identity_scope": "global",
+        "capture_level": "padrao"
+      }
+    },
+    {
+      "nome": "granular: campo agregado, com contagens e sem caracteres",
+      "valido": true,
+      "evento": {
+        "event_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3301",
+        "project_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3302",
+        "organization_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3303",
+        "anonymous_id": "a1",
+        "device_id": "d1",
+        "session_id": "s1",
+        "event_type": "campo",
+        "screen_key": "inicio",
+        "occurred_at": "2026-09-07T10:00:00Z",
+        "app_version": "1.0.0",
+        "platform": "web",
+        "identity_scope": "aplicacao",
+        "capture_level": "padrao",
+        "element_key": "v1|f=nome|t=|c=form>input|r=|d=|p=textbox",
+        "duration_ms": 4200,
+        "properties": {
+          "hesitacao_ms": 1200,
+          "caracteres_escritos": 14,
+          "caracteres_apagados": 3,
+          "origem": "manual",
+          "regressos": 1,
+          "ordem": 2,
+          "ordem_prevista": 1,
+          "estado_na_submissao": "preenchido"
+        }
+      }
+    },
+    {
+      "nome": "granular: toque sem alvo, com a zona e as coordenadas",
+      "valido": true,
+      "evento": {
+        "event_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3301",
+        "project_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3302",
+        "organization_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3303",
+        "anonymous_id": "a1",
+        "device_id": "d1",
+        "session_id": "s1",
+        "event_type": "toque_sem_alvo",
+        "screen_key": "inicio",
+        "occurred_at": "2026-09-07T10:00:00Z",
+        "app_version": "1.0.0",
+        "platform": "web",
+        "identity_scope": "aplicacao",
+        "capture_level": "padrao",
+        "properties": {
+          "toque_x": 42,
+          "toque_y": 77,
+          "zona": "3x5"
+        }
+      }
+    },
+    {
+      "nome": "granular: toque repetido, com a contagem e o intervalo",
+      "valido": true,
+      "evento": {
+        "event_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3301",
+        "project_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3302",
+        "organization_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3303",
+        "anonymous_id": "a1",
+        "device_id": "d1",
+        "session_id": "s1",
+        "event_type": "toque_repetido",
+        "screen_key": "inicio",
+        "occurred_at": "2026-09-07T10:00:00Z",
+        "app_version": "1.0.0",
+        "platform": "web",
+        "identity_scope": "aplicacao",
+        "capture_level": "padrao",
+        "properties": {
+          "repeticoes": 4,
+          "intervalo_ms": 380
+        }
+      }
+    },
+    {
+      "nome": "granular: terminal abandonado, com o campo onde a pessoa estava",
+      "valido": true,
+      "evento": {
+        "event_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3301",
+        "project_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3302",
+        "organization_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3303",
+        "anonymous_id": "a1",
+        "device_id": "d1",
+        "session_id": "s1",
+        "event_type": "terminal",
+        "screen_key": "inicio",
+        "occurred_at": "2026-09-07T10:00:00Z",
+        "app_version": "1.0.0",
+        "platform": "web",
+        "identity_scope": "aplicacao",
+        "capture_level": "padrao",
+        "properties": {
+          "estado": "abandonado",
+          "campo_abandono": "v1|f=cartao|t=|c=|r=|d=|p="
+        }
+      }
+    },
+    {
+      "nome": "granular: uma propriedade fora da lista é recusada",
+      "valido": false,
+      "evento": {
+        "event_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3301",
+        "project_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3302",
+        "organization_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3303",
+        "anonymous_id": "a1",
+        "device_id": "d1",
+        "session_id": "s1",
+        "event_type": "campo",
+        "screen_key": "inicio",
+        "occurred_at": "2026-09-07T10:00:00Z",
+        "app_version": "1.0.0",
+        "platform": "web",
+        "identity_scope": "aplicacao",
+        "capture_level": "padrao",
+        "properties": {
+          "caracteres_escritos": 3,
+          "texto_escrito": "Ana"
+        }
+      }
+    },
+    {
+      "nome": "granular: uma propriedade com texto longo parece conteúdo, e é recusada",
+      "valido": false,
+      "evento": {
+        "event_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3301",
+        "project_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3302",
+        "organization_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3303",
+        "anonymous_id": "a1",
+        "device_id": "d1",
+        "session_id": "s1",
+        "event_type": "campo",
+        "screen_key": "inicio",
+        "occurred_at": "2026-09-07T10:00:00Z",
+        "app_version": "1.0.0",
+        "platform": "web",
+        "identity_scope": "aplicacao",
+        "capture_level": "padrao",
+        "properties": {
+          "origem": "a pessoa escreveu isto tudo no campo e alguém achou que cabia aqui dentro"
+        }
+      }
+    },
+    {
+      "nome": "granular: um tipo de evento que o esquema não conhece",
+      "valido": false,
+      "evento": {
+        "event_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3301",
+        "project_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3302",
+        "organization_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3303",
+        "anonymous_id": "a1",
+        "device_id": "d1",
+        "session_id": "s1",
+        "event_type": "toque_fantasma",
+        "screen_key": "inicio",
+        "occurred_at": "2026-09-07T10:00:00Z",
+        "app_version": "1.0.0",
+        "platform": "web",
+        "identity_scope": "aplicacao",
+        "capture_level": "padrao"
+      }
+    }
   ]
 }

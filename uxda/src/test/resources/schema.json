@@ -3,34 +3,279 @@
   "versao_protocolo": 1,
   "compatibilidade_meses": 24,
   "campos": [
-    { "nome": "event_id",            "tipo": "uuid",      "obrigatorio": true,  "nota": "Idempotência. A repetição é o funcionamento normal, porque o SDK reenvia" },
-    { "nome": "project_id",          "tipo": "uuid",      "obrigatorio": true,  "nota": "Identifica a aplicação e o ambiente. Chave de isolamento" },
-    { "nome": "organization_id",     "tipo": "uuid",      "obrigatorio": true,  "nota": "Para as vistas consolidadas" },
-    { "nome": "anonymous_id",        "tipo": "texto",     "obrigatorio": true,  "max": 128, "nota": "Gerado no dispositivo" },
-    { "nome": "user_id",             "tipo": "texto",     "obrigatorio": false, "max": 128, "nota": "Pseudonimizado, depois da autenticação. NUNCA um identificador direto" },
-    { "nome": "device_id",           "tipo": "texto",     "obrigatorio": true,  "max": 128 },
-    { "nome": "session_id",          "tipo": "texto",     "obrigatorio": true,  "max": 128, "nota": "Sessão técnica, não unidade de análise" },
-    { "nome": "event_type",          "tipo": "enum",      "obrigatorio": true,
-      "valores": ["ecra","toque","foco","tecla","desfoco","submissao","erro","recuo","plano_fundo","erro_rede","mensagem","personalizado"] },
-    { "nome": "screen_key",          "tipo": "texto",     "obrigatorio": true,  "max": 256 },
-    { "nome": "element_key",         "tipo": "texto",     "obrigatorio": false, "max": 512, "nota": "O tuplo de sinais do ADR 0003, serializado" },
-    { "nome": "occurred_at",         "tipo": "instante",  "obrigatorio": true,  "nota": "Hora do dispositivo. Nunca usada sozinha num cálculo" },
-    { "nome": "received_at",         "tipo": "instante",  "obrigatorio": false, "nota": "Preenchido pela ingestão, e recusado se vier do cliente" },
-    { "nome": "clock_offset_ms",     "tipo": "inteiro",   "obrigatorio": false, "min": -86400000, "max_valor": 86400000, "nota": "Desvio calculado. Fora de um dia é relógio partido" },
-    { "nome": "app_version",         "tipo": "texto",     "obrigatorio": true,  "max": 64 },
-    { "nome": "platform",            "tipo": "enum",      "obrigatorio": true,  "valores": ["web","android","ios","react_native","flutter"] },
-    { "nome": "identity_scope",      "tipo": "enum",      "obrigatorio": true,  "valores": ["aplicacao","organizacao"], "nota": "ADR 0011. Existe desde o primeiro evento, mesmo enquanto for sempre aplicacao" },
-    { "nome": "capture_level",       "tipo": "enum",      "obrigatorio": true,  "valores": ["essencial","padrao","detalhado"], "nota": "ADR 0010. Sem ele, dois períodos com amostragem diferente comparam-se sem ninguém saber" },
-    { "nome": "properties",          "tipo": "objeto",    "obrigatorio": false, "nota": "Definidas pelo cliente. NUNCA conteúdo de campos" },
-    { "nome": "message_key",         "tipo": "texto",     "obrigatorio": false, "max": 256 },
-    { "nome": "message_kind",        "tipo": "enum",      "obrigatorio": false, "valores": ["erro","aviso","sucesso","info"] },
-    { "nome": "message_text_masked", "tipo": "texto",     "obrigatorio": false, "max": 1024, "nota": "Só quando não há chave. Chega já mascarado do dispositivo" },
-    { "nome": "duration_ms",         "tipo": "inteiro",   "obrigatorio": false, "min": 0, "max_valor": 86400000 }
+    {
+      "nome": "event_id",
+      "tipo": "uuid",
+      "obrigatorio": true,
+      "nota": "Idempotência. A repetição é o funcionamento normal, porque o SDK reenvia"
+    },
+    {
+      "nome": "project_id",
+      "tipo": "uuid",
+      "obrigatorio": true,
+      "nota": "Identifica a aplicação e o ambiente. Chave de isolamento"
+    },
+    {
+      "nome": "organization_id",
+      "tipo": "uuid",
+      "obrigatorio": true,
+      "nota": "Para as vistas consolidadas"
+    },
+    {
+      "nome": "anonymous_id",
+      "tipo": "texto",
+      "obrigatorio": true,
+      "max": 128,
+      "nota": "Gerado no dispositivo"
+    },
+    {
+      "nome": "user_id",
+      "tipo": "texto",
+      "obrigatorio": false,
+      "max": 128,
+      "nota": "Pseudonimizado, depois da autenticação. NUNCA um identificador direto"
+    },
+    {
+      "nome": "device_id",
+      "tipo": "texto",
+      "obrigatorio": true,
+      "max": 128
+    },
+    {
+      "nome": "session_id",
+      "tipo": "texto",
+      "obrigatorio": true,
+      "max": 128,
+      "nota": "Sessão técnica, não unidade de análise"
+    },
+    {
+      "nome": "event_type",
+      "tipo": "enum",
+      "obrigatorio": true,
+      "valores": [
+        "ecra",
+        "toque",
+        "foco",
+        "tecla",
+        "desfoco",
+        "submissao",
+        "erro",
+        "recuo",
+        "plano_fundo",
+        "erro_rede",
+        "mensagem",
+        "personalizado",
+        "toque_sem_alvo",
+        "toque_desativado",
+        "toque_repetido",
+        "toque_em_carregamento",
+        "primeira_interacao",
+        "campo",
+        "passo",
+        "espera",
+        "terminal",
+        "ambiente"
+      ],
+      "nota": "Os dez do RF-CAP-04, mais mensagem e personalizado, mais os dez da captura granular do RF-GRA"
+    },
+    {
+      "nome": "screen_key",
+      "tipo": "texto",
+      "obrigatorio": true,
+      "max": 256
+    },
+    {
+      "nome": "element_key",
+      "tipo": "texto",
+      "obrigatorio": false,
+      "max": 512,
+      "nota": "O tuplo de sinais do ADR 0003, serializado"
+    },
+    {
+      "nome": "occurred_at",
+      "tipo": "instante",
+      "obrigatorio": true,
+      "nota": "Hora do dispositivo. Nunca usada sozinha num cálculo"
+    },
+    {
+      "nome": "received_at",
+      "tipo": "instante",
+      "obrigatorio": false,
+      "nota": "Preenchido pela ingestão, e recusado se vier do cliente"
+    },
+    {
+      "nome": "clock_offset_ms",
+      "tipo": "inteiro",
+      "obrigatorio": false,
+      "min": -86400000,
+      "max_valor": 86400000,
+      "nota": "Desvio calculado. Fora de um dia é relógio partido"
+    },
+    {
+      "nome": "app_version",
+      "tipo": "texto",
+      "obrigatorio": true,
+      "max": 64
+    },
+    {
+      "nome": "platform",
+      "tipo": "enum",
+      "obrigatorio": true,
+      "valores": [
+        "web",
+        "android",
+        "ios",
+        "react_native",
+        "flutter"
+      ]
+    },
+    {
+      "nome": "identity_scope",
+      "tipo": "enum",
+      "obrigatorio": true,
+      "valores": [
+        "aplicacao",
+        "organizacao"
+      ],
+      "nota": "ADR 0011. Existe desde o primeiro evento, mesmo enquanto for sempre aplicacao"
+    },
+    {
+      "nome": "capture_level",
+      "tipo": "enum",
+      "obrigatorio": true,
+      "valores": [
+        "essencial",
+        "padrao",
+        "detalhado"
+      ],
+      "nota": "ADR 0010. Sem ele, dois períodos com amostragem diferente comparam-se sem ninguém saber"
+    },
+    {
+      "nome": "properties",
+      "tipo": "objeto",
+      "obrigatorio": false,
+      "nota": "Definidas pelo cliente. NUNCA conteúdo de campos"
+    },
+    {
+      "nome": "message_key",
+      "tipo": "texto",
+      "obrigatorio": false,
+      "max": 256
+    },
+    {
+      "nome": "message_kind",
+      "tipo": "enum",
+      "obrigatorio": false,
+      "valores": [
+        "erro",
+        "aviso",
+        "sucesso",
+        "info"
+      ]
+    },
+    {
+      "nome": "message_text_masked",
+      "tipo": "texto",
+      "obrigatorio": false,
+      "max": 1024,
+      "nota": "Só quando não há chave. Chega já mascarado do dispositivo"
+    },
+    {
+      "nome": "duration_ms",
+      "tipo": "inteiro",
+      "obrigatorio": false,
+      "min": 0,
+      "max_valor": 86400000
+    }
   ],
   "regras": [
-    { "codigo": "sem_conteudo",        "descricao": "Nenhum campo transporta conteúdo escrito pelo utilizador. As properties são validadas contra uma lista de chaves permitidas, e os valores só podem ser número, booleano ou texto curto sem dígitos longos." },
-    { "codigo": "mensagem_coerente",   "descricao": "Um evento de tipo mensagem tem de trazer message_key ou message_text_masked, e message_kind." },
-    { "codigo": "recebido_do_servidor","descricao": "received_at é preenchido pela ingestão. Se vier do cliente, é ignorado e o evento é aceite na mesma." },
-    { "codigo": "relogio_plausivel",   "descricao": "clock_offset_ms fora de mais ou menos um dia é relógio partido, e o evento é rejeitado com motivo." }
-  ]
+    {
+      "codigo": "sem_conteudo",
+      "descricao": "Nenhum campo transporta conteúdo escrito pelo utilizador. As properties são validadas contra uma lista de chaves permitidas, e os valores só podem ser número, booleano ou texto curto sem dígitos longos."
+    },
+    {
+      "codigo": "mensagem_coerente",
+      "descricao": "Um evento de tipo mensagem tem de trazer message_key ou message_text_masked, e message_kind."
+    },
+    {
+      "codigo": "recebido_do_servidor",
+      "descricao": "received_at é preenchido pela ingestão. Se vier do cliente, é ignorado e o evento é aceite na mesma."
+    },
+    {
+      "codigo": "relogio_plausivel",
+      "descricao": "clock_offset_ms fora de mais ou menos um dia é relógio partido, e o evento é rejeitado com motivo."
+    },
+    {
+      "codigo": "propriedade_conhecida",
+      "descricao": "Uma propriedade que não esteja em propriedades_permitidas é recusada, e não ignorada: um campo que passa em silêncio é um campo que ninguém percebe que está a ser deitado fora."
+    }
+  ],
+  "propriedades_permitidas": {
+    "$comment": "A lista vive aqui, e não dentro de cada validador. Estava escrita duas vezes, uma em Go e outra em TypeScript, e uma chave acrescentada de um lado só passava a ser recusada pelo outro sem ninguém dar por isso.",
+    "negocio": {
+      "$comment": "Definidas pelo cliente, para segmentar. NUNCA conteúdo de campos",
+      "chaves": [
+        "valor_monetario",
+        "moeda",
+        "tipo_utilizador",
+        "segmento",
+        "canal",
+        "campanha",
+        "experiencia"
+      ]
+    },
+    "toque": {
+      "$comment": "RF-GRA-01 a RF-GRA-05. As coordenadas vão em percentagem da janela, e não em pixels: um mapa de calor tem de sobrepor telemóveis e computadores",
+      "chaves": [
+        "toque_x",
+        "toque_y",
+        "zona",
+        "repeticoes",
+        "intervalo_ms",
+        "alvo_desativado",
+        "em_carregamento"
+      ]
+    },
+    "campo": {
+      "$comment": "RF-GRA-09 a RF-GRA-19. Contagens e tempos, nunca caracteres",
+      "chaves": [
+        "hesitacao_ms",
+        "tempo_fundo_ms",
+        "caracteres_escritos",
+        "caracteres_apagados",
+        "origem",
+        "visitado_vazio",
+        "regressos",
+        "ordem",
+        "ordem_prevista",
+        "estado_na_submissao",
+        "tentativas_ate_resolver",
+        "fase"
+      ]
+    },
+    "progressao": {
+      "$comment": "RF-GRA-20 a RF-GRA-25",
+      "chaves": [
+        "passo",
+        "passo_anterior",
+        "estado",
+        "campo_abandono",
+        "mudanca",
+        "valor",
+        "campos_preenchidos",
+        "campos_vazios",
+        "campos_com_erro"
+      ]
+    },
+    "mensagem": {
+      "$comment": "RF-MSG. A chave e a classe vão em colunas próprias; aqui fica o resto do contexto",
+      "chaves": [
+        "origem_mensagem",
+        "classe_erro",
+        "codigo_http",
+        "operacao",
+        "visivel"
+      ]
+    }
+  }
 }

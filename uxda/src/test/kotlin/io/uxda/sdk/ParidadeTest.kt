@@ -102,8 +102,22 @@ class ParidadeTest {
         assertTrue(essencial.capturaTipo(Tipos.ERRO))
         assertTrue(essencial.capturaTipo(Tipos.ERRO_REDE))
         assertTrue(essencial.capturaTipo(Tipos.SUBMISSAO))
-        assertTrue(!essencial.capturaTipo(Tipos.TOQUE))
+        // O toque está no essencial, e é o ADR 0010 que o põe lá: sem ele não há
+        // sequência nenhuma, e o essencial deixaria de servir para medir o que
+        // quer que fosse. O que o essencial corta é o que multiplica o volume.
+        assertTrue(essencial.capturaTipo(Tipos.TOQUE))
+        assertTrue(essencial.capturaTipo(Tipos.TERMINAL))
         assertTrue(!essencial.capturaTipo(Tipos.FOCO))
+        assertTrue(!essencial.capturaTipo(Tipos.CAMPO))
+
+        // E o padrão traz o agregado por campo e **não** traz a tecla nem o
+        // desfoco: é o RF-GRA-29, e é a mesma divisão do SDK web.
+        val padrao = Configuracao(nivel = "padrao")
+        assertTrue(padrao.capturaTipo(Tipos.CAMPO))
+        assertTrue(padrao.capturaTipo(Tipos.TOQUE_SEM_ALVO))
+        assertTrue(!padrao.capturaTipo(Tipos.TECLA))
+        assertTrue(!padrao.capturaTipo(Tipos.DESFOCO))
+        assertTrue(Configuracao(nivel = "detalhado").capturaTipo(Tipos.TECLA))
         // A lista remota manda sobre o nível, como no SDK web.
         val lista = Configuracao(nivel = "essencial", captura = listOf("toque"))
         assertTrue(lista.capturaTipo(Tipos.TOQUE))

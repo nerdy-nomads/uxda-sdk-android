@@ -29,6 +29,12 @@ data class Evento(
     val durationMs: Long? = null,
     val messageKey: String? = null,
     val messageKind: String? = null,
+    /**
+     * As propriedades da captura granular (secção 4.16). **Nunca conteúdo de
+     * campos**: contagens, tempos e classificações, e a ingestão recusa qualquer
+     * chave que não esteja na lista do esquema.
+     */
+    val properties: Map<String, Any>? = null,
 ) {
     fun paraJson(): JSONObject = JSONObject().apply {
         put("event_id", eventId)
@@ -49,6 +55,7 @@ data class Evento(
         durationMs?.let { put("duration_ms", it) }
         messageKey?.let { put("message_key", it) }
         messageKind?.let { put("message_kind", it) }
+        properties?.takeIf { it.isNotEmpty() }?.let { put("properties", JSONObject(it)) }
     }
 
     companion object {
@@ -58,6 +65,9 @@ data class Evento(
             deviceId = o.getString("device_id"),
             sessionId = o.getString("session_id"),
             eventType = o.getString("event_type"),
+            properties = o.optJSONObject("properties")?.let { p ->
+                p.keys().asSequence().associateWith { k -> p.get(k) }
+            },
             screenKey = o.getString("screen_key"),
             occurredAt = o.getString("occurred_at"),
             appVersion = o.getString("app_version"),
@@ -85,7 +95,37 @@ object Tipos {
     const val ERRO_REDE = "erro_rede"
     const val PERSONALIZADO = "personalizado"
 
+    // Captura granular, secção 4.16 do documento. Tipos próprios e não uma
+    // propriedade dentro do `toque`, porque o que se pergunta a estes é "quantos
+    // e onde", e o tipo é a única coluna de baixa cardinalidade que responde a
+    // isso depressa sobre mil milhões de linhas.
+    const val TOQUE_SEM_ALVO = "toque_sem_alvo"
+    const val TOQUE_DESATIVADO = "toque_desativado"
+    const val TOQUE_REPETIDO = "toque_repetido"
+    const val TOQUE_EM_CARREGAMENTO = "toque_em_carregamento"
+    const val PRIMEIRA_INTERACAO = "primeira_interacao"
+    const val CAMPO = "campo"
+    const val PASSO = "passo"
+    const val ESPERA = "espera"
+    const val TERMINAL = "terminal"
+    const val AMBIENTE = "ambiente"
+    const val MENSAGEM = "mensagem"
+
     val TODOS = listOf(ECRA, TOQUE, FOCO, TECLA, DESFOCO, SUBMISSAO, ERRO, RECUO, PLANO_FUNDO, ERRO_REDE)
+
+    /** Os da captura granular, que o cartão 4.5 põe em níveis. */
+    val GRANULARES = listOf(
+        TOQUE_SEM_ALVO, TOQUE_DESATIVADO, TOQUE_REPETIDO, TOQUE_EM_CARREGAMENTO,
+        PRIMEIRA_INTERACAO, CAMPO, PASSO, ESPERA, TERMINAL, AMBIENTE,
+    )
+}
+
+/** Os quatro estados em que uma tentativa pode acabar (RF-GRA-23). */
+object Terminal {
+    const val SUCESSO = "sucesso"
+    const val ERRO = "erro"
+    const val ABANDONADO = "abandonado"
+    const val EXPIRADO = "expirado"
 }
 
 /**
@@ -106,17 +146,38 @@ data class Configuracao(
     val captura: List<String> = emptyList(),
     val versao: Int = 0,
 ) {
-    /** Vazio quer dizer "os do nível", e o nível essencial corta o que é frequente. */
+    /**
+     * O que cada nível deixa passar. ADR 0010, RF-GRA-26, e a mesma lista do SDK
+     * web: uma estimativa de volume calculada sobre listas diferentes estimava
+     * outro produto.
+     *
+     * Repare-se no que o `padrao` tem e no que não tem: tem o **agregado por
+     * campo**, e não tem a tecla nem o desfoco. É o RF-GRA-29 inteiro, e é o que
+     * decide se o produto é vendável.
+     */
     fun capturaTipo(tipo: String): Boolean {
         if (captura.isNotEmpty()) return captura.contains(tipo)
-        if (nivel == "essencial") {
-            return tipo == Tipos.ECRA || tipo == Tipos.SUBMISSAO ||
-                tipo == Tipos.ERRO || tipo == Tipos.ERRO_REDE
+        return when (nivel) {
+            "essencial" -> ESSENCIAL.contains(tipo)
+            "padrao" -> PADRAO.contains(tipo)
+            else -> true
         }
-        return true
     }
 
     companion object {
+        val ESSENCIAL = setOf(
+            Tipos.ECRA, Tipos.TOQUE, Tipos.SUBMISSAO, Tipos.ERRO,
+            Tipos.ERRO_REDE, Tipos.MENSAGEM, Tipos.TERMINAL,
+        )
+
+        val PADRAO = ESSENCIAL + setOf(
+            Tipos.FOCO, Tipos.CAMPO,
+            Tipos.TOQUE_SEM_ALVO, Tipos.TOQUE_DESATIVADO, Tipos.TOQUE_REPETIDO,
+            Tipos.TOQUE_EM_CARREGAMENTO, Tipos.PRIMEIRA_INTERACAO,
+            Tipos.PASSO, Tipos.ESPERA, Tipos.AMBIENTE,
+            Tipos.PLANO_FUNDO, Tipos.RECUO, Tipos.PERSONALIZADO,
+        )
+
         /**
          * O valor por omissão **mede tudo**. Uma configuração que não chega não pode
          * deixar o cliente sem dados: a degradação é decisão de quem opera, e nunca

@@ -53,6 +53,14 @@ object Uxda {
     private var msNoFioPrincipal = 0.0
 
     /**
+     * Pedidos da aplicação anfitriã em voo. É o que deixa dizer que um toque foi
+     * dado **enquanto o sistema estava ocupado** (RF-GRA-05), que é uma coisa
+     * diferente de um toque que não deu nada.
+     */
+    @Volatile
+    private var emVoo = 0
+
+    /**
      * O relógio do orçamento do fio principal é o **tempo de CPU do próprio fio**, e
      * não o relógio de parede. RNF-SDK-05.
      *
@@ -104,9 +112,11 @@ object Uxda {
 
         if (op.automatico) {
             val c = Captura(
-                emitir = { tipo, elemento, duracao, extras -> emitirEvento(tipo, elemento, duracao, extras) },
+                emitir = { tipo, elemento, duracao, extras, props -> emitirEvento(tipo, elemento, duracao, extras, props) },
                 definirEcra = { ecraAtual = it },
                 medir = { bloco -> noFioPrincipal(bloco) },
+                nivel = { configuracao.nivel },
+                emVoo = { emVoo },
                 aoIrParaTras = {
                     // A sessão fica gravada e o que está em fila sai agora. O sistema
                     // pode abater o processo no instante seguinte, e sem isto os
@@ -144,6 +154,52 @@ object Uxda {
     }
 
     /** Declara o ecrã, para navegação que não muda de atividade (Compose, abas). */
+    /**
+     * Declara uma transição de passo dentro da tarefa (RF-GRA-20).
+     *
+     * Uma mudança de ecrã já conta como passo sozinha. Isto é para os fluxos que
+     * acontecem no mesmo ecrã, que são a maioria dos assistentes por etapas.
+     */
+    @JvmStatic
+    fun passo(nome: String) = Seguranca.executar("uxda.passo") {
+        captura?.progressao?.passo(nome.take(64))
+    }
+
+    /**
+     * Fecha a tentativa, sem ambiguidade (RF-GRA-23): `sucesso`, `erro`,
+     * `abandonado` ou `expirado`.
+     *
+     * O `abandonado` sai sozinho quando a aplicação vai para trás com trabalho a
+     * meio, e o `expirado` é normalmente do motor, que é quem conhece o limiar da
+     * tarefa. Sem isto, o abandono e a conclusão misturam-se e todas as taxas
+     * ficam erradas.
+     */
+    @JvmStatic
+    fun terminal(estado: String) = Seguranca.executar("uxda.terminal") {
+        captura?.progressao?.terminal(estado)
+    }
+
+    /**
+     * Uma espera imposta pelo sistema, que não é hesitação de ninguém (RF-GRA-21).
+     * O intercetor de OkHttp chama isto sozinho; quem não o usa chama-o à mão.
+     */
+    @JvmStatic
+    fun espera(ms: Long) = Seguranca.executar("uxda.espera") {
+        captura?.progressao?.espera(ms)
+    }
+
+    /** Conta um pedido da aplicação a entrar e a sair, para o RF-GRA-05 e o 21. */
+    @JvmStatic
+    fun pedidoComecou() = Seguranca.executar("uxda.pedido") { emVoo++ }
+
+    @JvmStatic
+    fun pedidoAcabou(duracaoMs: Long) = Seguranca.executar("uxda.pedido") {
+        emVoo = (emVoo - 1).coerceAtLeast(0)
+        // Abaixo de meio segundo ninguém espera por nada, e emitir um evento por
+        // cada pedido rápido era trocar o volume que o cartão 4.5 poupou.
+        if (duracaoMs >= 500) captura?.progressao?.espera(duracaoMs)
+    }
+
     @JvmStatic
     fun ecra(nome: String) = Seguranca.executar("uxda.ecra") {
         ecraAtual = nome.take(256)
@@ -287,7 +343,13 @@ object Uxda {
      * dentro; com o identificador, o relógio e a sessão do outro lado, o fio
      * principal fica com o que não pode mesmo sair de cá.
      */
-    private fun emitirEvento(tipo: String, elemento: String?, duracao: Long?, extras: Map<String, String>) {
+    private fun emitirEvento(
+        tipo: String,
+        elemento: String?,
+        duracao: Long?,
+        extras: Map<String, String>,
+        propriedades: Map<String, Any>? = null,
+    ) {
         val inicio = agoraNoFio()
         var contar = false
         Seguranca.executar("uxda.emitir") {
@@ -315,6 +377,7 @@ object Uxda {
                     durationMs = duracao,
                     messageKey = extras["message_key"],
                     messageKind = extras["message_kind"],
+                    properties = propriedades,
                 )
                 fila.juntar(ev)
             }

@@ -34,7 +34,7 @@ class CapturaTest {
     fun `todos os pontos de entrada do ciclo de vida passam pelo cronometro`() {
         var medicoes = 0
         val c = Captura(
-            emitir = { _, _, _, _ -> },
+            emitir = { _, _, _, _, _ -> },
             definirEcra = {},
             medir = { bloco -> medicoes++; bloco() },
         )
@@ -52,7 +52,7 @@ class CapturaTest {
         var paraTras = 0
         val tipos = mutableListOf<String>()
         val c = Captura(
-            emitir = { tipo, _, _, _ -> tipos += tipo },
+            emitir = { tipo, _, _, _, _ -> tipos += tipo },
             definirEcra = {},
             aoIrParaTras = { paraTras++ },
         )
@@ -69,7 +69,7 @@ class CapturaTest {
         // arrancar, e isso não é a aplicação ir para segundo plano. Sem a contagem
         // de atividades visíveis, cada navegação fechava a sessão.
         var paraTras = 0
-        val c = Captura(emitir = { _, _, _, _ -> }, definirEcra = {}, aoIrParaTras = { paraTras++ })
+        val c = Captura(emitir = { _, _, _, _, _ -> }, definirEcra = {}, aoIrParaTras = { paraTras++ })
         val primeira = atividade()
         val segunda = atividade()
         c.onActivityStarted(primeira)
@@ -88,7 +88,7 @@ class CapturaTest {
         // classes sem `getError`, que são quase todas as de uma árvore de vistas, e
         // por isso cada toque voltava a pedir a lista completa de métodos de cada
         // vista do ecrã.
-        val c = Captura(emitir = { _, _, _, _ -> }, definirEcra = {})
+        val c = Captura(emitir = { _, _, _, _, _ -> }, definirEcra = {})
         val grupo = android.widget.LinearLayout(atividade())
 
         assertEquals(false, c.temErro(grupo))
@@ -103,7 +103,7 @@ class CapturaTest {
     fun `um campo de texto nao passa sequer pela reflexao`() {
         // `getError` é API do `TextView`, e é dele que descendem os campos onde a
         // validação da plataforma aparece. O caminho comum não paga reflexão.
-        val c = Captura(emitir = { _, _, _, _ -> }, definirEcra = {})
+        val c = Captura(emitir = { _, _, _, _, _ -> }, definirEcra = {})
         val campo = android.widget.EditText(atividade())
         campo.error = "Falta o nome"
 
@@ -122,7 +122,7 @@ class CapturaTest {
         // Android 16 a primeira versão rebentava com `NoSuchFieldException`, o que
         // fazia o SDK substituir o ouvinte da aplicação em vez de o encadear, e o
         // formulário de quem nos instalou deixava de submeter.
-        val c = Captura(emitir = { _, _, _, _ -> }, definirEcra = {})
+        val c = Captura(emitir = { _, _, _, _, _ -> }, definirEcra = {})
         val campo = android.widget.EditText(atividade())
 
         val semNada = c.ouvinteAtualDeAcao(campo)
@@ -142,7 +142,7 @@ class CapturaTest {
         var relogio = 1_000L
         var duracao: Long? = null
         val c = Captura(
-            emitir = { tipo, _, d, _ -> if (tipo == Tipos.PLANO_FUNDO) duracao = d },
+            emitir = { tipo, _, d, _, _ -> if (tipo == Tipos.PLANO_FUNDO) duracao = d },
             definirEcra = {},
             agora = { relogio },
         )

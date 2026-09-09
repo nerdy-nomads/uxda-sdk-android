@@ -1,0 +1,277 @@
+package io.uxda.sdk
+
+import android.app.Activity
+import android.widget.Button
+import android.widget.EditText
+import android.widget.LinearLayout
+import io.uxda.sdk.captura.Campos
+import io.uxda.sdk.captura.Progressao
+import io.uxda.sdk.captura.Toques
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
+import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.Robolectric
+import org.robolectric.RobolectricTestRunner
+
+/**
+ * Captura granular. Cartões 4.1 a 4.4, RF-GRA-01 a RF-GRA-25.
+ *
+ * O que estes ensaios protegem é o que **nenhuma ferramenta de funis vê**: um
+ * funil vê os passos que aconteceram, e um toque numa zona morta não é um passo.
+ */
+@RunWith(RobolectricTestRunner::class)
+class GranularTest {
+
+    private class Saida {
+        val eventos = mutableListOf<Triple<String, Long?, Map<String, Any>?>>()
+        val emitir: (String, String?, Long?, Map<String, Any>?) -> Unit =
+            { tipo, _, duracao, props -> eventos += Triple(tipo, duracao, props) }
+        fun doTipo(t: String) = eventos.filter { it.first == t }
+    }
+
+    private fun atividade(): Activity = Robolectric.buildActivity(Activity::class.java).setup().get()
+
+    /* --------------------------------------------------------------- 4.1 */
+
+    @Test
+    fun `os tres casos aparecem separados, e nao num contador de toques falhados`() {
+        val s = Saida()
+        var relogio = 1000L
+        val t = Toques(s.emitir, { relogio }, { false })
+
+        t.semAlvo(50f, 900f, 1080, 2400)
+        t.desativado("id=confirmar", 10f, 10f, 1080, 2400)
+        repeat(3) { t.anotar("id=pagar"); relogio += 200 }
+        t.fecharRajada()
+
+        assertEquals(1, s.doTipo(Tipos.TOQUE_SEM_ALVO).size)
+        assertEquals(1, s.doTipo(Tipos.TOQUE_DESATIVADO).size)
+        assertEquals(1, s.doTipo(Tipos.TOQUE_REPETIDO).size)
+
+        val repetido = s.doTipo(Tipos.TOQUE_REPETIDO).first()
+        assertEquals(3, repetido.third!!["repeticoes"])
+        assertTrue("o intervalo entre insistências", (repetido.third!!["intervalo_ms"] as Long) > 0)
+    }
+
+    @Test
+    fun `a zona vai sempre e as coordenadas so no detalhado`() {
+        val padrao = Saida()
+        Toques(padrao.emitir, { 0 }, { false }).semAlvo(540f, 1200f, 1080, 2400)
+        val p = padrao.doTipo(Tipos.TOQUE_SEM_ALVO).first().third!!
+        assertEquals("3x5", p["zona"])
+        assertEquals(null, p["toque_x"])
+
+        val detalhado = Saida()
+        Toques(detalhado.emitir, { 0 }, { true }).semAlvo(540f, 1200f, 1080, 2400)
+        val d = detalhado.doTipo(Tipos.TOQUE_SEM_ALVO).first().third!!
+        assertEquals("em percentagem da janela, para caber no mesmo mapa que a web", 50, d["toque_x"])
+        assertEquals(50, d["toque_y"])
+    }
+
+    @Test
+    fun `o tempo ate a primeira interacao conta-se por ecra`() {
+        val s = Saida()
+        var relogio = 0L
+        val t = Toques(s.emitir, { relogio }, { false })
+        relogio = 1800
+        t.primeiraInteracao()
+        t.primeiraInteracao()
+        assertEquals("uma por ecrã, e não uma por toque", 1, s.doTipo(Tipos.PRIMEIRA_INTERACAO).size)
+        assertEquals(1800L, s.doTipo(Tipos.PRIMEIRA_INTERACAO).first().second)
+
+        t.ecraNovo()
+        relogio = 2500
+        t.primeiraInteracao()
+        assertEquals(2, s.doTipo(Tipos.PRIMEIRA_INTERACAO).size)
+    }
+
+    /* --------------------------------------------------------------- 4.2 */
+
+    private fun formulario(): Pair<Activity, List<EditText>> {
+        val a = atividade()
+        val raiz = LinearLayout(a)
+        val campos = (1..3).map { i ->
+            EditText(a).also { it.hint = "Campo $i"; raiz.addView(it) }
+        }
+        raiz.addView(Button(a).also { it.text = "Pagar" })
+        a.setContentView(raiz)
+        return a to campos
+    }
+
+    @Test
+    fun `um evento por campo, com hesitacao e contagens, e nunca os caracteres`() {
+        val s = Saida()
+        var relogio = 0L
+        val (_, campos) = formulario()
+        val c = Campos(s.emitir, { relogio }, { false }, { false })
+
+        c.entrar(campos[0])
+        relogio = 900
+        campos[0].setText("Ana")
+        relogio = 4000
+        c.sair(campos[0])
+
+        val evs = s.doTipo(Tipos.CAMPO)
+        assertEquals("um evento por campo, e um só", 1, evs.size)
+        val p = evs.first().third!!
+        assertEquals(900L, p["hesitacao_ms"])
+        assertEquals(3, p["caracteres_escritos"])
+        assertEquals(0, p["caracteres_apagados"])
+        assertEquals(4000L, evs.first().second)
+
+        // E o que ela escreveu não está em lado nenhum.
+        assertTrue("o conteúdo do campo saiu", !s.eventos.toString().contains("Ana"))
+    }
+
+    @Test
+    fun `colagem distingue-se de introducao manual`() {
+        val s = Saida()
+        val (_, campos) = formulario()
+        val c = Campos(s.emitir, { 0 }, { false }, { false })
+
+        c.entrar(campos[0])
+        campos[0].append("A")
+        c.sair(campos[0])
+
+        c.entrar(campos[1])
+        campos[1].setText("4111111111111111")
+        c.sair(campos[1])
+
+        val evs = s.doTipo(Tipos.CAMPO)
+        assertEquals("manual", evs[0].third!!["origem"])
+        assertEquals("colagem", evs[1].third!!["origem"])
+        assertEquals(16, evs[1].third!!["caracteres_escritos"])
+    }
+
+    @Test
+    fun `apagar conta, e e dos melhores sinais de dificuldade que existem`() {
+        val s = Saida()
+        val (_, campos) = formulario()
+        val c = Campos(s.emitir, { 0 }, { false }, { false })
+        c.entrar(campos[0])
+        campos[0].setText("12345")
+        campos[0].setText("123")
+        c.sair(campos[0])
+        val p = s.doTipo(Tipos.CAMPO).first().third!!
+        assertEquals(5 + 3, p["caracteres_escritos"])
+        assertEquals(5, p["caracteres_apagados"])
+    }
+
+    @Test
+    fun `regressos, ordem efetiva e ordem prevista`() {
+        val s = Saida()
+        val (_, campos) = formulario()
+        val c = Campos(s.emitir, { 0 }, { false }, { false })
+
+        c.entrar(campos[2]); c.sair(campos[2])
+        c.entrar(campos[0]); c.sair(campos[0])
+        c.entrar(campos[2]); c.sair(campos[2])
+
+        val ultimo = s.doTipo(Tipos.CAMPO).last().third!!
+        assertEquals("foi o primeiro a ser preenchido", 1, ultimo["ordem"])
+        assertEquals("mas o formulário previa que fosse o terceiro", 3, ultimo["ordem_prevista"])
+        assertEquals("voltou uma vez ao mesmo campo", 1, ultimo["regressos"])
+    }
+
+    @Test
+    fun `um campo visitado e deixado vazio nao e um campo nunca visitado`() {
+        val s = Saida()
+        val (a, campos) = formulario()
+        val c = Campos(s.emitir, { 0 }, { false }, { false })
+        c.entrar(campos[0])
+        c.sair(campos[0])
+        assertEquals(true, s.doTipo(Tipos.CAMPO).first().third!!["visitado_vazio"])
+
+        // Na submissão saem os três, incluindo os dois onde ninguém tocou.
+        campos[1].setText("Ana")
+        val (preenchidos, vazios, _) = c.aoSubmeter(a.window.decorView)
+        assertEquals(1, preenchidos)
+        assertEquals(2, vazios)
+        val naSubmissao = s.doTipo(Tipos.CAMPO).filter { it.third?.get("fase") == "submissao" }
+        assertEquals("um retrato por campo do formulário", 3, naSubmissao.size)
+    }
+
+    /* --------------------------------------------------------------- 4.4 */
+
+    @Test
+    fun `cada transicao de passo traz o passo anterior e o tempo que ele levou`() {
+        val s = Saida()
+        var relogio = 0L
+        val p = Progressao(s.emitir, { relogio }, { false }, { "" })
+        p.passo("/pagamento")
+        relogio = 2500
+        p.passo("/confirmar")
+
+        val passos = s.doTipo(Tipos.PASSO)
+        assertEquals(2, passos.size)
+        assertEquals("/confirmar", passos[1].third!!["passo"])
+        assertEquals("/pagamento", passos[1].third!!["passo_anterior"])
+        assertEquals(2500L, passos[1].second)
+    }
+
+    @Test
+    fun `o evento terminal e inequivoco, e sao quatro estados`() {
+        for (estado in listOf(Terminal.SUCESSO, Terminal.ERRO, Terminal.ABANDONADO, Terminal.EXPIRADO)) {
+            val s = Saida()
+            val p = Progressao(s.emitir, { 0 }, { false }, { "id=cartao" })
+            p.terminal(estado)
+            p.terminal(estado)
+            assertEquals("$estado: um terminal, e um só", 1, s.doTipo(Tipos.TERMINAL).size)
+            assertEquals(estado, s.doTipo(Tipos.TERMINAL).first().third!!["estado"])
+        }
+    }
+
+    @Test
+    fun `sair com trabalho a meio e um abandono, com o campo onde ela estava`() {
+        // O documento chama a isto a informação mais acionável do conjunto: não é
+        // o passo que provoca abandono, é quase sempre um campo concreto dentro
+        // dele.
+        val s = Saida()
+        val p = Progressao(s.emitir, { 0 }, { false }, { "id=cartao#0d29" })
+        p.passo("/pagamento")
+        p.esconder()
+
+        val t = s.doTipo(Tipos.TERMINAL).first().third!!
+        assertEquals(Terminal.ABANDONADO, t["estado"])
+        assertEquals("id=cartao#0d29", t["campo_abandono"])
+    }
+
+    @Test
+    fun `a duracao de cada ausencia para segundo plano e registada`() {
+        val s = Saida()
+        var relogio = 0L
+        val p = Progressao(s.emitir, { relogio }, { false }, { "" })
+        p.esconder()
+        relogio = 7000
+        p.mostrar()
+        val regresso = s.doTipo(Tipos.AMBIENTE).first { it.third?.get("mudanca") == "primeiro_plano" }
+        assertEquals(7000L, regresso.second)
+    }
+
+    @Test
+    fun `a espera imposta pelo sistema sai num evento proprio`() {
+        // Somada ao tempo do passo, ninguém consegue voltar a separá-las depois, e
+        // a lentidão do servidor passa a parecer hesitação da pessoa.
+        val s = Saida()
+        val p = Progressao(s.emitir, { 0 }, { false }, { "" })
+        p.espera(1400)
+        p.espera(0)
+        assertEquals(1, s.doTipo(Tipos.ESPERA).size)
+        assertEquals(1400L, s.doTipo(Tipos.ESPERA).first().second)
+    }
+
+    @Test
+    fun `no nivel essencial nada disto sai`() {
+        val s = Saida()
+        val p = Progressao(s.emitir, { 0 }, { true }, { "" })
+        p.passo("/pagamento")
+        p.espera(9000)
+        p.ambiente("rede", "4g")
+        assertEquals(0, s.eventos.size)
+        // O terminal sai na mesma: é o que fecha a tentativa, e sem ele o abandono
+        // e a conclusão misturam-se em todos os níveis.
+        p.terminal(Terminal.SUCESSO)
+        assertEquals(1, s.doTipo(Tipos.TERMINAL).size)
+    }
+}
