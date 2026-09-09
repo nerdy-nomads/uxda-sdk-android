@@ -47,6 +47,19 @@ object Uxda {
     private var configuracao = Configuracao.SEGURA
     private var origemConfig = "omissao"
     private var amostrado = true
+
+    /**
+     * Quem está na amostra do detalhado sobe de nível, e **está sempre**.
+     *
+     * A amostragem é determinística, por resumo do identificador anónimo, e não
+     * aleatória por sessão: com aleatória, a mesma pessoa entra e sai da amostra e
+     * as tentativas dela ficam com buracos, e uma tentativa com buracos deixa de
+     * significar o que quer que seja (ADR 0010).
+     */
+    private var noDetalhe = false
+
+    private fun nivelEfetivo(): String =
+        if (noDetalhe && configuracao.nivel != "essencial") "detalhado" else configuracao.nivel
     private var ecraAtual = "/"
     private var emitidos = 0
     private var recusados = 0
@@ -115,7 +128,7 @@ object Uxda {
                 emitir = { tipo, elemento, duracao, extras, props -> emitirEvento(tipo, elemento, duracao, extras, props) },
                 definirEcra = { ecraAtual = it },
                 medir = { bloco -> noFioPrincipal(bloco) },
-                nivel = { configuracao.nivel },
+                nivel = { nivelEfetivo() },
                 emVoo = { emVoo },
                 aoIrParaTras = {
                     // A sessão fica gravada e o que está em fila sai agora. O sistema
@@ -358,7 +371,7 @@ object Uxda {
             val agora = System.currentTimeMillis()
             val ecra = ecraAtual
             val versao = opcoes?.versaoApp ?: "0.0.0"
-            val nivel = configuracao.nivel
+            val nivel = nivelEfetivo()
             contar = true
             emitidos++
             emPlanoDeFundo {
@@ -429,6 +442,9 @@ object Uxda {
             else -> { origemConfig = "omissao"; Configuracao.SEGURA }
         }
         amostrado = Ids.naAmostra(identidade.anonimo, configuracao.amostragem)
+        // Sementes diferentes: quem está na amostra de ser medido não tem de ser a
+        // mesma gente que está na amostra do detalhe.
+        noDetalhe = Ids.naAmostra("detalhado:" + identidade.anonimo, configuracao.amostragemDetalhado)
     }
 
     private fun estadoDaRede(contexto: Context): Fila.EstadoRede =

@@ -11,7 +11,7 @@
 
 4. o que o sistema registou
   ok     nenhuma exceção fatal no registo do sistema
-  ok     o SDK apanhou 43 erros internos por dentro, e engoliu-os todos
+  ok     o SDK apanhou 40 erros internos por dentro, e engoliu-os todos
 
 5. repor o dispositivo
   ok     disco e rede de volta

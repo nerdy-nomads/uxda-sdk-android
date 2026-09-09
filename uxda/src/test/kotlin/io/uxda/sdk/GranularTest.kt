@@ -274,4 +274,38 @@ class GranularTest {
         p.terminal(Terminal.SUCESSO)
         assertEquals(1, s.doTipo(Tipos.TERMINAL).size)
     }
+
+    /* --------------------------------------------------------------- 4.5 */
+
+    @Test
+    fun `a amostragem do detalhado e outra coisa que a amostragem de medir`() {
+        // A distinção é o ADR 0010: a `amostragem` decide **se** a pessoa é
+        // medida, e a `amostragem_detalhado` decide **com que detalhe**. Com uma
+        // só, subir o detalhe obrigava a subir para toda a gente, que é o custo
+        // que a decisão evita.
+        val c = Configuracao.deJson(
+            org.json.JSONObject("""{"amostragem": 1, "nivel": "padrao", "amostragem_detalhado": 0.1}"""),
+        )
+        assertEquals(1.0, c.amostragem, 0.0)
+        assertEquals(0.1, c.amostragemDetalhado, 0.0001)
+
+        // Um valor absurdo não passa: uma fração acima de um punha toda a gente no
+        // detalhado por engano, que é o acidente que isto evita.
+        val absurdo = Configuracao.deJson(org.json.JSONObject("""{"amostragem_detalhado": 7}"""))
+        assertEquals(1.0, absurdo.amostragemDetalhado, 0.0001)
+        assertEquals(0.0, Configuracao().amostragemDetalhado, 0.0)
+    }
+
+    @Test
+    fun `a amostragem do detalhado e deterministica, e por isso nao deixa buracos`() {
+        val dentro = { id: String -> Ids.naAmostra("detalhado:$id", 0.2) }
+        for (id in listOf("a1", "pessoa-2", "3f2504e0-4f89-41d3-9a0c-0305e82c3301")) {
+            assertEquals("a mesma pessoa tem de dar sempre o mesmo", dentro(id), dentro(id))
+        }
+        var n = 0
+        val total = 20000
+        for (i in 0 until total) if (dentro("anonimo-$i")) n++
+        val fracao = n.toDouble() / total
+        assertTrue("esperava perto de 0,20 e deu $fracao", fracao > 0.18 && fracao < 0.22)
+    }
 }

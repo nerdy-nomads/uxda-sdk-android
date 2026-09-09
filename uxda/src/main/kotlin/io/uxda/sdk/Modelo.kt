@@ -143,6 +143,14 @@ data class Opcoes(
 data class Configuracao(
     val amostragem: Double = 1.0,
     val nivel: String = "padrao",
+    /**
+     * Que fração dos utilizadores sobe ao nível detalhado (RF-GRA-27).
+     *
+     * É uma coisa diferente da `amostragem`: aquela decide **se** a pessoa é
+     * medida, esta decide **com que detalhe**. Com uma só, subir o detalhe
+     * obrigava a subir para toda a gente, que é o custo que o ADR 0010 evita.
+     */
+    val amostragemDetalhado: Double = 0.0,
     val captura: List<String> = emptyList(),
     val versao: Int = 0,
 ) {
@@ -201,7 +209,10 @@ data class Configuracao(
                     (a.opt(i) as? String)?.takeIf { it.isNotEmpty() }?.let(lista::add)
                 }
             }
-            return Configuracao(amostragem, nivel, lista, o.optInt("versao", 0))
+            val detalhado = o.optDouble("amostragem_detalhado", 0.0).let {
+                if (it.isNaN()) 0.0 else it.coerceIn(0.0, 1.0)
+            }
+            return Configuracao(amostragem, nivel, detalhado, lista, o.optInt("versao", 0))
         }
     }
 }

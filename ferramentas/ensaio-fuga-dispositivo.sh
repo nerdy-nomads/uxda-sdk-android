@@ -94,10 +94,10 @@ SELECT count() FROM (
   echo
   echo "  o que o SDK escreveu no lugar do conteúdo:"
   curl -s "$CH" --data-binary "
-SELECT event_type, element_key, message_text_masked
+SELECT event_type, element_key, properties
 FROM events
 WHERE platform = 'android' AND received_at > toDateTime('$INICIO')
-  AND event_type IN ('tecla', 'foco', 'desfoco', 'submissao')
+  AND event_type IN ('campo', 'foco', 'tecla', 'desfoco', 'submissao')
 ORDER BY corrected_at LIMIT 8 FORMAT TSV" | sed 's/^/    /'
 } | tee "$SAIDA/fuga-dispositivo.txt"
 
