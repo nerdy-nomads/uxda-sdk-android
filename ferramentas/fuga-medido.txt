@@ -1,22 +1,17 @@
-
-1. escrever os marcadores em todos os campos, nas duas árvores
-  ok     vistas clássicas preenchidas
-  ok     ecrã em Compose preenchido
-
-2. procurar os marcadores em tudo o que chegou ao armazenamento
-ensaio de fuga em dispositivo, 2026-09-09T08:47:45Z
+ensaio de fuga em dispositivo, 2026-09-09T10:04:48Z
 dispositivo: sdk_gphone64_x86_64, Android 16, 4 núcleo(s)
 
-  marcadores escritos             4, nas duas árvores de interface
-  eventos android chegados        19
+  marcadores escritos             7, nas duas árvores de interface
+  eventos android chegados        24
   eventos com algum marcador      0
+
+  o que o SDK escreveu no lugar do conteúdo das mensagens:
+    saldo_insuficiente	
+    txt_e51c0c1e	O saldo de {numero} Kz do documento {id} nao chega para {nome} em {data}
 
   o que o SDK escreveu no lugar do conteúdo:
     foco	id=nome#77bb0909	{}
-    campo	id=nome#77bb0909	{"caracteres_apagados":0,"caracteres_escritos":12,"hesitacao_ms":1068,"ordem":1,"ordem_prevista":1,"origem":"manual","regressos":0}
+    campo	id=nome#77bb0909	{"caracteres_apagados":0,"caracteres_escritos":12,"hesitacao_ms":1054,"ordem":1,"ordem_prevista":1,"origem":"manual","regressos":0}
     foco	id=cartao#0d295fd8	{}
-    campo	id=cartao#0d295fd8	{"caracteres_apagados":0,"caracteres_escritos":16,"hesitacao_ms":1023,"ordem":2,"ordem_prevista":2,"origem":"manual","regressos":0}
+    campo	id=cartao#0d295fd8	{"caracteres_apagados":0,"caracteres_escritos":16,"hesitacao_ms":1021,"ordem":2,"ordem_prevista":2,"origem":"manual","regressos":0}
     foco	id=validade#986d1d3a	{}
-
-  ok     nenhum dos 4 marcadores aparece em nenhum dos 19 eventos
-saida=0

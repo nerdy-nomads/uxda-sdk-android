@@ -26,6 +26,13 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v4
 
+      # A bateria de fuga corre **em passo próprio e primeiro**, e não só dentro do
+      # conjunto. É o RNF-PRI-01, e quando falha tem de se ver que foi ela: uma
+      # linha vermelha no meio de oitenta ensaios é uma linha que se lê como "os
+      # testes falharam", e esta não é um teste como os outros.
+      - name: Bateria de fuga de conteúdo
+        run: ./gradlew :uxda:testDebugUnitTest --tests '*Fuga*'
+
       - name: Ensaios
         run: ./gradlew :uxda:testDebugUnitTest
 

@@ -28,12 +28,18 @@ object UxdaOkHttp {
         Uxda.pedidoComecou()
         try {
             val resposta: Response = cadeia.proceed(pedido)
-            // 5xx é falha do servidor; 4xx é a aplicação a dizer que não, e isso é
-            // comportamento normal que não se marca como avaria.
-            if (resposta.code >= 500) Uxda.erroDeRede(pedido.url.toString(), resposta.code)
+            // **Os 4xx contam, e antes não contavam.** A primeira versão dizia que
+            // um 4xx é a aplicação a dizer que não, e isso é verdade; só que o
+            // RF-MSG-06 pede as respostas de erro do servidor recebidas pelo
+            // cliente, e um 422 que ninguém mostra no ecrã é exatamente o abandono
+            // que não se explica. O que os separa é a `classe_erro`.
+            if (resposta.code >= 400) Uxda.erroDeRede(pedido.url.toString(), resposta.code)
             resposta
         } catch (e: Throwable) {
-            Uxda.erroDeRede(pedido.url.toString(), 0)
+            // Um pedido que esgotou o tempo é uma coisa diferente de não haver
+            // rede: o sistema respondeu tarde, e o utilizador esperou por ele.
+            val expirou = e is java.net.SocketTimeoutException || e is java.io.InterruptedIOException
+            Uxda.erroDeRede(pedido.url.toString(), 0, expirou)
             throw e
         } finally {
             // Corre sempre, com sucesso ou sem ele: um contador de pedidos em voo

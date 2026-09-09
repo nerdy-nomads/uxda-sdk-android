@@ -53,4 +53,45 @@ object Mascara {
 
     /** Normaliza, mascara e resume. É o que entra no sinal do rótulo. */
     fun resumoDe(texto: String): String = Ids.resumo(preparar(texto))
+
+    /* --------------------------------------------------------- mensagens */
+
+    /**
+     * O que se tira de uma mensagem além dos números: o que a aplicação lá
+     * interpolou a partir do que a pessoa é ou escreveu.
+     *
+     * O `mascarar` cobre o RF-MSG-04 à letra, que fala de números, montantes, datas
+     * e identificadores. Só que uma mensagem real também traz **nomes** ("Olá Ana
+     * Maria, o pedido falhou") e **ecos do que foi escrito** ("O valor «abc» não é
+     * válido"), e nenhum deles é número nenhum.
+     *
+     * **A garantia total é a chave, e não isto.** São heurísticas, e a direção do
+     * erro é a segura: mascaram a mais, nunca a menos. É a mesma lista do SDK web,
+     * pela mesma ordem, porque o catálogo é um só para os dois canais.
+     */
+    private val REGRAS_MENSAGEM: List<Pair<Regex, String>> = listOf(
+        Regex("""[“”«»"]([^“”«»"]{1,120})[“”«»"]""") to "{valor}",
+        Regex("""\b(Olá|Ola|Caro|Cara|Exmo\.|Exma\.|Sr\.|Sra\.|Bem-vindo|Bem-vinda)([,]?\s+)\p{Lu}[\p{Ll}\p{M}]+""") to "$1$2{nome}",
+        Regex("""\b\p{Lu}[\p{Ll}\p{M}]+(?:\s+(?:d[aeoi]s?|e|von|van|del)\s+\p{Lu}[\p{Ll}\p{M}]+|\s+\p{Lu}[\p{Ll}\p{M}]+)+""") to "{nome}",
+    )
+
+    /** Mascara uma mensagem de sistema, no dispositivo e antes de qualquer envio. */
+    fun mascararMensagem(texto: String): String {
+        var saida = Regex("""\s+""").replace(texto, " ").trim()
+        for ((re, marcador) in REGRAS_MENSAGEM) saida = re.replace(saida, marcador)
+        return mascarar(saida)
+    }
+
+    /**
+     * A chave de agrupamento por semelhança (RF-MSG-03). Tira os marcadores e as
+     * palavras curtas, e fica com o que a mensagem diz: "O saldo é insuficiente" e
+     * "O saldo de {numero} Kz é insuficiente" caem no mesmo grupo.
+     */
+    fun esqueletoDeMensagem(mascarada: String): String =
+        normalizarTexto(mascarada)
+            .replace(Regex("""\{[a-z]+\}"""), " ")
+            .split(Regex("""[^\p{L}]+"""))
+            .filter { it.length >= 4 }
+            .take(8)
+            .joinToString(" ")
 }

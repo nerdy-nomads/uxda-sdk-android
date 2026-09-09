@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Identificadores para as vistas de mensagem criadas em tempo de execução.
+
+  O nome do recurso é o que o SDK lê para saber **o que aquilo é** (RF-MSG-01), e é
+  assim que uma aplicação a sério os escreve: `erro_geral`, `aviso_ligacao`. Sem um
+  nome que diga alguma coisa, a classificação cai em `info`, que é o valor seguro e
+  também o menos útil.
+-->
+<resources>
+    <item name="erro_geral" type="id" />
+    <item name="aviso_geral" type="id" />
+    <item name="sucesso_geral" type="id" />
+</resources>

@@ -107,6 +107,40 @@
             android:layout_height="wrap_content"
             android:text="Apoio, em fragmentos" />
 
+        <!--
+            As mensagens do cartão 5.1, e as quatro classes do RF-MSG-01. Nada
+            disto está instrumentado: são vistas com o nome de recurso a dizer o
+            que são, tal como qualquer aplicação as escreve.
+
+            A primeira traz a **chave**, pela etiqueta `uxda:mensagem=`, e é o
+            caminho que o RF-MSG-02 manda preferir: estável, independente do
+            idioma, sem dados lá dentro. A segunda só tem texto, e é aí que o
+            mascaramento do 5.2 tem de funcionar.
+        -->
+        <Button
+            android:id="@+id/msg_chave"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Mensagem com chave" />
+
+        <Button
+            android:id="@+id/msg_texto"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Mensagem só com texto" />
+
+        <Button
+            android:id="@+id/msg_tecnico"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Erro que ninguém vê" />
+
+        <LinearLayout
+            android:id="@+id/avisos"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical" />
+
         <TextView
             android:id="@+id/diagnostico"
             android:layout_width="match_parent"

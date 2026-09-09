@@ -77,6 +77,46 @@ Nada disto é necessário. Tudo isto melhora a estabilidade da identidade:
 | `Modifier.testTag("botao-pagar")` | O mesmo, em Compose |
 | `contentDescription` nos ícones | Dá rótulo a quem não tem texto, e serve o leitor de ecrã ao mesmo tempo |
 | `android:tag="uxda:destino=/checkout"` | Recupera o sinal do destino, que no Android não existe naturalmente |
+| `android:tag="uxda:mensagem=saldo_insuficiente"` | Dá **chave** a uma mensagem, e aí o texto dela nem sai do dispositivo |
+| `android:id="@+id/erro_saldo"` | O nome do recurso classifica a mensagem sozinho: `erro_`, `aviso_`, `sucesso_` |
+
+## Mensagens: dê-nos a chave, e o texto não sai do dispositivo
+
+O SDK apanha sozinho o que a aplicação mostra: vistas cujo nome de classe ou de
+recurso diz o que são (`Snackbar`, `alert`, `erro_saldo`, `aviso_ligacao`), o corpo
+de um diálogo da plataforma, e o `setError` de um campo. Classifica em **erro,
+aviso, sucesso e informação**, e separa os erros em **validação num campo, operação
+e sistema**, que é a diferença entre três equipas que fazem trabalho diferente.
+
+Quando a aplicação diz qual é a mensagem, o resultado é melhor em três frentes ao
+mesmo tempo, e é por isso que vale a pena:
+
+```kotlin
+// Uma etiqueta, e não muda nada no que a pessoa vê.
+aviso.tag = "uxda:mensagem=saldo_insuficiente"
+// Ou, para o que o SDK não vê sozinho (um Toast, uma notificação):
+Uxda.mensagem("saldo_insuficiente", "erro")
+```
+
+| Sem chave, só com texto | Com chave |
+|---|---|
+| O texto sai, **mascarado** | **O texto não sai de todo.** Não há nada para mascarar nem para arriscar |
+| A mesma mensagem em português e em inglês dá **duas entradas** no catálogo | Dá **uma**, e a contagem é a verdadeira |
+| Mudar a redação parte a série histórica | A série sobrevive a qualquer reescrita |
+| A mascaragem é uma heurística, e mascara a mais | Não há heurística nenhuma pelo meio |
+
+E quando não há chave, o texto sai assim, medido no emulador
+(`ferramentas/mensagens-medido.txt`):
+
+```
+O saldo de 12.400,50 Kz do documento 005123456LA041 nao chega para Ana Maria da Silva em 2027-03-14
+→ O saldo de {numero} Kz do documento {id} nao chega para {nome} em {data}
+```
+
+Tudo isto acontece **no dispositivo, antes de qualquer envio**, e a ingestão volta a
+verificar: um texto que chegue com um arroba ou com cinco algarismos seguidos é
+recusado, e não mascarado do outro lado. O desenho inteiro está no
+[ADR 0020](../../docs/adr/0020-mensagens-a-chave-o-texto-e-o-chao-da-mascaragem.md).
 
 ## O que nunca faz
 

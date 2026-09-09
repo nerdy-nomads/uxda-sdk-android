@@ -126,6 +126,7 @@ object Uxda {
         if (op.automatico) {
             val c = Captura(
                 emitir = { tipo, elemento, duracao, extras, props -> emitirEvento(tipo, elemento, duracao, extras, props) },
+                mensagemExposta = { chave -> configuracao.mensagensExpostas.contains(chave) },
                 definirEcra = { ecraAtual = it },
                 medir = { bloco -> noFioPrincipal(bloco) },
                 nivel = { nivelEfetivo() },
@@ -241,19 +242,86 @@ object Uxda {
     @JvmStatic
     fun esquecer() = Seguranca.executar("uxda.esquecer") { identidade.utilizador = null }
 
-    /** Um erro de rede da aplicação anfitriã, para quem não usa OkHttp. */
+    /**
+     * Declara uma mensagem apresentada ao utilizador (RF-MSG-01, RF-MSG-02).
+     *
+     * A captura automática apanha o que aparece na árvore de vistas: `Snackbar`,
+     * diálogos, vistas com o nome de recurso a dizer erro ou aviso, e o `setError`
+     * de um campo. Isto é para o resto, e para quem prefere declarar a chave em vez
+     * de deixar adivinhar pelo texto. **A chave ganha sempre ao texto**: é estável,
+     * é independente do idioma e não arrasta dados nenhuns.
+     */
     @JvmStatic
-    fun erroDeRede(url: String, estado: Int) = Seguranca.executar("uxda.erroDeRede") {
-        val destino = io.uxda.sdk.identidade.Elemento.normalizarDestino(url)
+    @JvmOverloads
+    fun mensagem(chave: String, tipo: String = "info", operacao: String? = null) = Seguranca.executar("uxda.mensagem") {
+        captura?.mensagens?.declarar(chave.take(256), tipo, operacao)
+    }
+
+    /**
+     * Declara um erro que **ninguém viu no ecrã** (RF-MSG-06).
+     *
+     * As falhas de rede e as respostas de erro do servidor já saem sozinhas pelo
+     * intercetor. Isto é para o que a aplicação apanha e engole: uma resposta
+     * ilegível, um passo que falhou em silêncio. São eles que explicam o abandono
+     * que não tem explicação nenhuma no ecrã.
+     */
+    @JvmStatic
+    @JvmOverloads
+    fun erroTecnico(chave: String, operacao: String? = null, codigoHttp: Int = 0) = Seguranca.executar("uxda.erroTecnico") {
+        val props = HashMap<String, Any>()
+        props["classe_erro"] = "sistema"
+        operacao?.let { props["operacao"] = it.take(32) }
+        if (codigoHttp > 0) props["codigo_http"] = codigoHttp
+        captura?.mensagens?.tecnico(chave.take(256), props)
+    }
+
+    /**
+     * Um erro de rede da aplicação anfitriã, para quem não usa OkHttp.
+     *
+     * Os três casos vão distinguidos, e não somados (RF-MSG-06):
+     *
+     *   `rede_indisponivel`  o pedido não chegou a lado nenhum
+     *   `rede_expirou`       chegou, e a resposta não veio a tempo
+     *   `http_<n>`           chegou e respondeu, e a resposta é um erro
+     */
+    @JvmStatic
+    @JvmOverloads
+    fun erroDeRede(url: String, estado: Int, expirou: Boolean = false) = Seguranca.executar("uxda.erroDeRede") {
+        val destino = io.uxda.sdk.identidade.Elemento.normalizarDestino(url) ?: ""
+        val chave = if (expirou) "rede_expirou" else if (estado > 0) "http_$estado" else "rede_indisponivel"
+        if (repetidoNaRede("$destino|$chave")) return@executar
+        // A operação é o primeiro segmento do caminho: `/pagamentos/8412` dá
+        // `pagamentos`. É o que permite a taxa de sucesso por operação do RF-MSG-17
+        // sem ninguém instrumentar nada, e é de baixa cardinalidade de propósito.
+        val operacao = destino.split("/").firstOrNull { it.isNotEmpty() && !it.startsWith("{") }?.take(32)
+        val props = HashMap<String, Any>()
+        // **Invisível ao utilizador**: é o que o distingue de uma mensagem de erro
+        // no ecrã, e é a coluna por onde o catálogo os separa.
+        props["visivel"] = false
+        // 5xx é o sistema a falhar; 4xx é a operação a ser recusada, e é trabalho
+        // de outra equipa. Uma queda de rede não é nem uma nem outra.
+        props["classe_erro"] = if (estado >= 500 || estado == 0) "sistema" else "operacao"
+        if (estado > 0) props["codigo_http"] = estado
+        operacao?.let { props["operacao"] = it }
         emitirEvento(
             Tipos.ERRO_REDE,
-            destino?.let { "v1|f=destino|d=" + it.take(120) },
+            destino.ifEmpty { null }?.let { "v1|f=destino|d=" + it.take(120) },
             null,
-            mapOf(
-                "message_key" to if (estado > 0) "http_$estado" else "rede_indisponivel",
-                "message_kind" to "erro",
-            ),
+            mapOf("message_key" to chave, "message_kind" to "erro"),
+            props,
         )
+    }
+
+    /** A mesma rota a falhar dez vezes num segundo é uma falha, e não dez. */
+    private val ultimasFalhas = HashMap<String, Long>()
+
+    private fun repetidoNaRede(id: String): Boolean {
+        val n = System.currentTimeMillis()
+        val antes = ultimasFalhas[id]
+        if (antes != null && n - antes < 3_000) return true
+        ultimasFalhas[id] = n
+        if (ultimasFalhas.size > 100) ultimasFalhas.entries.removeAll { n - it.value > 60_000 }
+        return false
     }
 
     /** Força o envio do que está em fila. Corre fora do fio principal. */
@@ -390,6 +458,7 @@ object Uxda {
                     durationMs = duracao,
                     messageKey = extras["message_key"],
                     messageKind = extras["message_kind"],
+                    messageTextMasked = extras["message_text_masked"],
                     properties = propriedades,
                 )
                 fila.juntar(ev)

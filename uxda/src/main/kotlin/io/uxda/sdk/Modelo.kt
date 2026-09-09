@@ -30,6 +30,14 @@ data class Evento(
     val messageKey: String? = null,
     val messageKind: String? = null,
     /**
+     * O texto da mensagem, **já mascarado, e só quando não há chave** (RF-MSG-03).
+     *
+     * Chega aqui depois de passar pelo `Mascara.mascararMensagem`, no dispositivo e
+     * antes de qualquer envio: mascarar do outro lado deixava a promessa verdadeira
+     * no desenho e falsa na prática, porque o valor já tinha atravessado a rede.
+     */
+    val messageTextMasked: String? = null,
+    /**
      * As propriedades da captura granular (secção 4.16). **Nunca conteúdo de
      * campos**: contagens, tempos e classificações, e a ingestão recusa qualquer
      * chave que não esteja na lista do esquema.
@@ -55,6 +63,7 @@ data class Evento(
         durationMs?.let { put("duration_ms", it) }
         messageKey?.let { put("message_key", it) }
         messageKind?.let { put("message_kind", it) }
+        messageTextMasked?.let { put("message_text_masked", it) }
         properties?.takeIf { it.isNotEmpty() }?.let { put("properties", JSONObject(it)) }
     }
 
@@ -77,6 +86,7 @@ data class Evento(
             durationMs = if (o.has("duration_ms")) o.getLong("duration_ms") else null,
             messageKey = o.optString("message_key").ifEmpty { null },
             messageKind = o.optString("message_kind").ifEmpty { null },
+            messageTextMasked = o.optString("message_text_masked").ifEmpty { null },
         )
     }
 }
@@ -151,6 +161,12 @@ data class Configuracao(
      * obrigava a subir para toda a gente, que é o custo que o ADR 0010 evita.
      */
     val amostragemDetalhado: Double = 0.0,
+    /**
+     * As chaves de mensagem que a instituição autorizou a sair por inteiro
+     * (RNF-PRI-04). Vazia por omissão: o mascaramento é o estado de repouso, e a
+     * exposição é que precisa de uma decisão de quem é responsável pelos dados.
+     */
+    val mensagensExpostas: List<String> = emptyList(),
     val captura: List<String> = emptyList(),
     val versao: Int = 0,
 ) {
@@ -212,7 +228,13 @@ data class Configuracao(
             val detalhado = o.optDouble("amostragem_detalhado", 0.0).let {
                 if (it.isNaN()) 0.0 else it.coerceIn(0.0, 1.0)
             }
-            return Configuracao(amostragem, nivel, detalhado, lista, o.optInt("versao", 0))
+            val expostas = mutableListOf<String>()
+            o.optJSONArray("mensagens_expostas")?.let { a ->
+                for (i in 0 until a.length()) {
+                    (a.opt(i) as? String)?.takeIf { it.isNotEmpty() }?.let(expostas::add)
+                }
+            }
+            return Configuracao(amostragem, nivel, detalhado, expostas.take(200), lista, o.optInt("versao", 0))
         }
     }
 }

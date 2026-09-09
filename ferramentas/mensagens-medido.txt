@@ -1,0 +1,20 @@
+ensaio de mensagens de sistema, 2026-09-09T09:53:19Z
+dispositivo: sdk_gphone64_x86_64, Android 16
+
+event_type	message_key	message_kind	classe	visivel	message_text_masked
+mensagem	saldo_insuficiente	erro	operacao	true	
+mensagem	txt_e51c0c1e	aviso		true	O saldo de {numero} Kz do documento {id} nao chega para {nome} em {data}
+mensagem	resposta_ilegivel	erro	sistema	false	
+mensagem	txt_ec07142f	erro	validacao	true	Falta o nome
+mensagem	txt_41dc0211	erro	validacao	true	Número incompleto
+mensagem	saldo_insuficiente	erro	operacao	true	
+mensagem	txt_e51c0c1e	aviso		true	O saldo de {numero} Kz do documento {id} nao chega para {nome} em {data}
+fuga "12.400": 0 eventos
+fuga "12400": 0 eventos
+fuga "005123456LA041": 0 eventos
+fuga "2027-03-14": 0 eventos
+fuga "Ana Maria da Silva": 0 eventos
+
+classes de erro observadas: ,operacao,sistema,validacao
+mensagens que chegaram: 7
+textos com marcadores no lugar dos valores: 2

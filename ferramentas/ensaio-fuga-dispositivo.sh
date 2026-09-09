@@ -32,7 +32,13 @@ FALHOU=0
 # aparecerem no armazenamento, vieram do teclado desta pessoa.
 # Nada de marcadores curtos e numéricos: um "1229" apanhava-se por acaso dentro
 # de um identificador aleatório, e daria uma fuga que não existe.
-MARCADORES=(SEGREDOxNOME 4111111111111111 SEGREDOxVALIDADE SEGREDOxCOMPOSE)
+#
+# E os três que a **aplicação** interpola nas mensagens que mostra, que é o
+# caminho que a fase 5 abriu: o documento, a data e o nome que aparecem no ecrã
+# dentro de uma mensagem de erro. Nenhum deles é conteúdo de campo, e todos eles
+# são conteúdo de alguém.
+MARCADORES=(SEGREDOxNOME 4111111111111111 SEGREDOxVALIDADE SEGREDOxCOMPOSE
+            005123456LA041 2027-03-14 "Ana Maria da Silva")
 
 tocar_em() {
   "$ADB" shell uiautomator dump /sdcard/ui.xml >/dev/null 2>&1
@@ -55,6 +61,20 @@ tocar_em "Número do cartão" && "$ADB" shell input text "4111111111111111" >/de
 tocar_em "Validade"         && "$ADB" shell input text "SEGREDOxVALIDADE" >/dev/null 2>&1
 tocar_em "Pagar" ; sleep 1
 ok "vistas clássicas preenchidas"
+
+# As mensagens do cartão 5.1, com montante, documento, data e nome lá dentro. O
+# SDK vê-as, e o que tem de chegar ao armazenamento é o texto com marcadores no
+# lugar dos valores, e nunca os valores.
+# **Fechar o teclado primeiro.** Com ele aberto, os botões das mensagens ficam
+# fora da parte visível e o `uiautomator` não os encontra: a primeira corrida
+# deste ensaio deu conta de sete marcadores procurados e zero mensagens
+# capturadas, que é uma bateria a passar por não ter olhado para nada.
+"$ADB" shell input keyevent KEYCODE_BACK >/dev/null 2>&1
+sleep 1
+MENSAGENS=0
+tocar_em "Mensagem com chave"   && MENSAGENS=$((MENSAGENS+1))
+tocar_em "Mensagem só com texto" && MENSAGENS=$((MENSAGENS+1))
+[ "$MENSAGENS" = "2" ] && ok "mensagens de sistema mostradas" || falha "só $MENSAGENS de 2 mensagens foram mostradas"
 
 tocar_em "Compose" ; sleep 4
 tocar_em "Nome" && "$ADB" shell input text "SEGREDOxCOMPOSE" >/dev/null 2>&1
@@ -91,6 +111,14 @@ SELECT count() FROM (
   echo "  marcadores escritos             ${#MARCADORES[@]}, nas duas árvores de interface"
   echo "  eventos android chegados        ${TOTAL:-0}"
   echo "  eventos com algum marcador      ${FUGAS:-?}"
+  echo
+  echo "  o que o SDK escreveu no lugar do conteúdo das mensagens:"
+  curl -s "$CH" --data-binary "
+SELECT message_key, message_text_masked
+FROM events
+WHERE platform = 'android' AND received_at > toDateTime('$INICIO')
+  AND event_type = 'mensagem'
+ORDER BY corrected_at LIMIT 4 FORMAT TSV" | sed 's/^/    /'
   echo
   echo "  o que o SDK escreveu no lugar do conteúdo:"
   curl -s "$CH" --data-binary "

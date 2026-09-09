@@ -28,6 +28,9 @@ internal class Progressao(
     private var escondido = false
     private var escondidoEm = 0L
 
+    /** Em que passo a tentativa vai. É o contexto do RF-MSG-05, e não emite nada. */
+    fun passoAtual(): String = passoAtual
+
     fun passo(nome: String) {
         if (essencial() || nome.isEmpty()) return
         val t = agora()

@@ -441,6 +441,223 @@
         "identity_scope": "aplicacao",
         "capture_level": "padrao"
       }
+    },
+    {
+      "nome": "mensagem: chave e classe chegam, e o texto nem é preciso",
+      "valido": true,
+      "evento": {
+        "event_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3401",
+        "project_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3302",
+        "organization_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3303",
+        "anonymous_id": "a1",
+        "device_id": "d1",
+        "session_id": "s1",
+        "event_type": "mensagem",
+        "screen_key": "/checkout",
+        "occurred_at": "2026-09-07T10:00:00Z",
+        "app_version": "1.0.0",
+        "platform": "web",
+        "identity_scope": "aplicacao",
+        "capture_level": "essencial",
+        "message_key": "saldo_insuficiente",
+        "message_kind": "erro",
+        "properties": {
+          "origem_mensagem": "chave",
+          "classe_erro": "operacao",
+          "visivel": true
+        }
+      }
+    },
+    {
+      "nome": "mensagem: texto mascarado, com o grupo de semelhança ao lado",
+      "valido": true,
+      "evento": {
+        "event_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3402",
+        "project_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3302",
+        "organization_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3303",
+        "anonymous_id": "a1",
+        "device_id": "d1",
+        "session_id": "s1",
+        "event_type": "mensagem",
+        "screen_key": "/checkout",
+        "occurred_at": "2026-09-07T10:00:00Z",
+        "app_version": "1.0.0",
+        "platform": "web",
+        "identity_scope": "aplicacao",
+        "capture_level": "essencial",
+        "message_text_masked": "o saldo de {numero} kz e insuficiente",
+        "message_kind": "erro",
+        "properties": {
+          "origem_mensagem": "texto",
+          "grupo_mensagem": "1f3a9c02",
+          "classe_erro": "operacao"
+        }
+      }
+    },
+    {
+      "nome": "mensagem: o montante escapou à mascaragem do dispositivo",
+      "valido": false,
+      "evento": {
+        "event_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3403",
+        "project_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3302",
+        "organization_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3303",
+        "anonymous_id": "a1",
+        "device_id": "d1",
+        "session_id": "s1",
+        "event_type": "mensagem",
+        "screen_key": "/checkout",
+        "occurred_at": "2026-09-07T10:00:00Z",
+        "app_version": "1.0.0",
+        "platform": "web",
+        "identity_scope": "aplicacao",
+        "capture_level": "essencial",
+        "message_text_masked": "o saldo de 12400 kz e insuficiente",
+        "message_kind": "erro"
+      }
+    },
+    {
+      "nome": "mensagem: o correio electrónico escapou à mascaragem do dispositivo",
+      "valido": false,
+      "evento": {
+        "event_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3404",
+        "project_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3302",
+        "organization_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3303",
+        "anonymous_id": "a1",
+        "device_id": "d1",
+        "session_id": "s1",
+        "event_type": "mensagem",
+        "screen_key": "/checkout",
+        "occurred_at": "2026-09-07T10:00:00Z",
+        "app_version": "1.0.0",
+        "platform": "web",
+        "identity_scope": "aplicacao",
+        "capture_level": "essencial",
+        "message_text_masked": "ja existe conta para ana.silva@exemplo.ao",
+        "message_kind": "erro"
+      }
+    },
+    {
+      "nome": "mensagem: erro técnico do servidor, que ninguém viu no ecrã",
+      "valido": true,
+      "evento": {
+        "event_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3405",
+        "project_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3302",
+        "organization_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3303",
+        "anonymous_id": "a1",
+        "device_id": "d1",
+        "session_id": "s1",
+        "event_type": "mensagem",
+        "screen_key": "/checkout",
+        "occurred_at": "2026-09-07T10:00:00Z",
+        "app_version": "1.0.0",
+        "platform": "web",
+        "identity_scope": "aplicacao",
+        "capture_level": "essencial",
+        "message_key": "http_503",
+        "message_kind": "erro",
+        "properties": {
+          "visivel": false,
+          "classe_erro": "sistema",
+          "codigo_http": 503,
+          "operacao": "pagamento"
+        }
+      }
+    },
+    {
+      "nome": "propriedade permitida com um número de documento lá dentro",
+      "valido": false,
+      "evento": {
+        "event_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3501",
+        "project_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3302",
+        "organization_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3303",
+        "anonymous_id": "a1",
+        "device_id": "d1",
+        "session_id": "s1",
+        "event_type": "personalizado",
+        "screen_key": "/checkout",
+        "occurred_at": "2026-09-07T10:00:00Z",
+        "app_version": "1.0.0",
+        "platform": "web",
+        "identity_scope": "aplicacao",
+        "capture_level": "padrao",
+        "message_key": "depuracao",
+        "properties": {
+          "segmento": "005123456LA041"
+        }
+      }
+    },
+    {
+      "nome": "propriedade permitida com correio electrónico lá dentro",
+      "valido": false,
+      "evento": {
+        "event_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3502",
+        "project_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3302",
+        "organization_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3303",
+        "anonymous_id": "a1",
+        "device_id": "d1",
+        "session_id": "s1",
+        "event_type": "personalizado",
+        "screen_key": "/checkout",
+        "occurred_at": "2026-09-07T10:00:00Z",
+        "app_version": "1.0.0",
+        "platform": "web",
+        "identity_scope": "aplicacao",
+        "capture_level": "padrao",
+        "message_key": "depuracao",
+        "properties": {
+          "campanha": "ana.silva@exemplo.ao"
+        }
+      }
+    },
+    {
+      "nome": "propriedade permitida com um valor curto e sem dígitos longos",
+      "valido": true,
+      "evento": {
+        "event_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3503",
+        "project_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3302",
+        "organization_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3303",
+        "anonymous_id": "a1",
+        "device_id": "d1",
+        "session_id": "s1",
+        "event_type": "personalizado",
+        "screen_key": "/checkout",
+        "occurred_at": "2026-09-07T10:00:00Z",
+        "app_version": "1.0.0",
+        "platform": "web",
+        "identity_scope": "aplicacao",
+        "capture_level": "padrao",
+        "message_key": "depuracao",
+        "properties": {
+          "segmento": "empresas",
+          "canal": "app",
+          "campanha": "promo2026"
+        }
+      }
+    },
+    {
+      "nome": "o resumo do grupo tem algarismos seguidos, e é opaco por construção",
+      "valido": true,
+      "evento": {
+        "event_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3601",
+        "project_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3302",
+        "organization_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3303",
+        "anonymous_id": "a1",
+        "device_id": "d1",
+        "session_id": "s1",
+        "event_type": "mensagem",
+        "screen_key": "/checkout",
+        "occurred_at": "2026-09-07T10:00:00Z",
+        "app_version": "1.0.0",
+        "platform": "web",
+        "identity_scope": "aplicacao",
+        "capture_level": "essencial",
+        "message_text_masked": "mensagem numero {numero} do molde {numero}",
+        "message_kind": "erro",
+        "properties": {
+          "origem_mensagem": "texto",
+          "grupo_mensagem": "62431dbd"
+        }
+      }
     }
   ]
 }

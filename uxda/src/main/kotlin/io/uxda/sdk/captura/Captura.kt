@@ -67,6 +67,12 @@ class Captura(
     private val nivel: () -> String = { "padrao" },
     /** Pedidos da aplicação em voo, para saber se ela está ocupada (RF-GRA-05). */
     private val emVoo: () -> Int = { 0 },
+    /**
+     * As chaves de mensagem que a instituição autorizou a sair por inteiro
+     * (RNF-PRI-04). Sem lista, tudo sai mascarado, que é o que "por omissão" quer
+     * dizer.
+     */
+    private val mensagemExposta: (String) -> Boolean = { false },
 ) : Application.ActivityLifecycleCallbacks {
 
     /* ------------------------------------------------------ captura granular */
@@ -80,6 +86,18 @@ class Captura(
     private val toques = Toques(emitirGranular, { agora() }, detalhado)
     private val campos = Campos(emitirGranular, { agora() }, detalhado, essencial)
     internal val progressao = Progressao(emitirGranular, { agora() }, essencial) { campos.campoDeAbandono() }
+
+    /**
+     * As mensagens de sistema (RF-MSG). Perguntam à progressão em que passo a
+     * tentativa vai: uma mensagem sem passo é uma mensagem que ninguém consegue
+     * localizar no percurso (RF-MSG-05).
+     */
+    internal val mensagens = Mensagens(
+        emitir = { tipo, elemento, extras, props -> emitir(tipo, elemento, null, extras, props) },
+        agora = { agora() },
+        passo = { progressao.passoAtual() },
+        exposta = { chave -> mensagemExposta(chave) },
+    )
 
     private var atividadesVisiveis = 0
     private var emPrimeiroPlanoDesde = 0L
@@ -110,7 +128,9 @@ class Captura(
         progressao.passo(nomeDoEcra(a))
         campos.mostrar()
         progressao.mostrar()
+        mensagens.ecraNovo()
         ligarFoco(a)
+        ligarMensagens(a)
         registarFragmentos(a)
     } }
 
@@ -325,6 +345,26 @@ class Captura(
         }
     }
 
+    /**
+     * O varrimento das mensagens, pendurado na disposição da árvore.
+     *
+     * **`addOnGlobalLayoutListener` e não `setOnHierarchyChangeListener`**, e a
+     * diferença não é de estilo: o `set` tira à aplicação o ouvinte que ela lá
+     * tivesse posto, e o `add` não tira nada a ninguém. É a mesma lição da ação do
+     * teclado, que o ADR 0019 conta.
+     *
+     * O custo está travado do lado do `Mensagens`: uma varredura a cada 250 ms, com
+     * profundidade e número de vistas limitados.
+     */
+    private fun ligarMensagens(a: Activity) {
+        val raiz = a.window?.decorView ?: return
+        val arvore = raiz.viewTreeObserver ?: return
+        if (!arvore.isAlive) return
+        arvore.addOnGlobalLayoutListener {
+            medir { Seguranca.executar("captura.mensagens.disposicao") { mensagens.varrer(raiz) } }
+        }
+    }
+
     private fun entrarNoCampo(v: View) {
         if (v !is EditText) return
         // Quem guarda o estado do campo é o agregador: hesitação, contagens,
@@ -466,6 +506,11 @@ class Captura(
                             mapOf("message_key" to "validacao_nativa", "message_kind" to "erro"),
                             campos.aoErrar(v, "validacao_nativa"),
                         )
+                        // E a mensagem em si, para o catálogo do RF-MSG-09. O evento
+                        // `erro` diz **que campo** falhou e é igual para todos; esta
+                        // diz **o quê**, mascarada, e é o que torna a validação
+                        // contável em vez de um `validacao_nativa` sem conteúdo.
+                        mensagens.erroDeCampo(v, mensagemDeErro(v))
                     }
                 }
             }
@@ -501,6 +546,25 @@ class Captura(
                 .also { metodoDeErro[classe] = it }
         } ?: return@protegido false
         (m.invoke(v) as? CharSequence)?.isNotEmpty() == true
+    }
+
+    /**
+     * A mensagem do `setError`, pela mesma cache de método do `temErro`.
+     *
+     * O `temErro` responde **se** há erro, e é o que corre a cada toque; isto
+     * responde **qual**, e só corre quando já se sabe que há um. A separação é o
+     * que mantém o caminho quente sem alocar uma `CharSequence` por vista.
+     */
+    internal fun mensagemDeErro(v: View): CharSequence? = Seguranca.protegido("captura.mensagemDeErro", null) {
+        if (v is android.widget.TextView) return@protegido v.error
+        val classe = v.javaClass
+        val m = if (metodoDeErro.containsKey(classe)) {
+            metodoDeErro[classe]
+        } else {
+            classe.methods.firstOrNull { it.name == "getError" && it.parameterCount == 0 }
+                .also { metodoDeErro[classe] = it }
+        } ?: return@protegido null
+        m.invoke(v) as? CharSequence
     }
 
     private fun percorrer(v: View, nivel: Int, bloco: (View) -> Unit) {

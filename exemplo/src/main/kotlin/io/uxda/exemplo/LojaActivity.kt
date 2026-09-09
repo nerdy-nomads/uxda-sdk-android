@@ -46,6 +46,37 @@ class LojaActivity : androidx.appcompat.app.AppCompatActivity() {
             Ponte.identificar("ana.silva@exemplo.ao")
         }
 
+        // As mensagens do cartão 5.1. A aplicação **só as mostra**: quem as vê,
+        // classifica e mascara é o SDK, sem uma linha de instrumentação.
+        val avisos = findViewById<android.widget.LinearLayout>(R.id.avisos)
+        fun mostrar(texto: String, chave: String?, id: Int = R.id.erro_geral) {
+            val v = TextView(this)
+            // O nome do recurso é o que a captura lê para saber que aquilo é uma
+            // mensagem **e de que tipo**, tal como na web lê a classe. `erro_geral`
+            // dá um erro; um `aviso_ligacao` daria um aviso.
+            v.id = id
+            v.text = texto
+            if (chave != null) v.tag = "uxda:mensagem=$chave"
+            v.setPadding(0, 12, 0, 12)
+            avisos.addView(v)
+            mao.postDelayed({ avisos.removeView(v) }, 6000)
+        }
+        findViewById<Button>(R.id.msg_chave).setOnClickListener {
+            mostrar("Saldo insuficiente para esta operação", "saldo_insuficiente")
+        }
+        findViewById<Button>(R.id.msg_texto).setOnClickListener {
+            // Montante, documento, data e um nome, tudo lá dentro. É o risco
+            // crítico do documento, e o que sai é
+            // `O saldo de {numero} Kz do documento {id} ...`.
+            mostrar("O saldo de 12.400,50 Kz do documento 005123456LA041 nao chega para Ana Maria da Silva em 2027-03-14", null, R.id.aviso_geral)
+        }
+        findViewById<Button>(R.id.msg_tecnico).setOnClickListener {
+            // O que corre mal **sem chegar ao ecrã** (RF-MSG-06). Nada aparece à
+            // pessoa, e é isso que o torna a causa de abandono mais difícil de
+            // explicar.
+            Ponte.erroTecnico("resposta_ilegivel", "pagamento")
+        }
+
         findViewById<Button>(R.id.falhar).setOnClickListener {
             Thread {
                 // Porta fechada de propósito: um 404 é a aplicação a dizer que não,
