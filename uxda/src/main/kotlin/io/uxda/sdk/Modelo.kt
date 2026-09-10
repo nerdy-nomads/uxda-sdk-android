@@ -58,6 +58,14 @@ data class Evento(
         put("platform", "android")
         put("identity_scope", "aplicacao")
         put("capture_level", captureLevel)
+        // O contexto do dispositivo, que é a base da segmentação do RF-MET-12.
+        // Segmenta e não identifica: nome do sistema, versão maior, classe de
+        // dispositivo e fuso. Nunca o modelo, nunca a versão completa, nunca o
+        // lugar. Ver o `Contexto.kt` e o ADR 0022.
+        put("os_name", Contexto.osName())
+        Contexto.osVersion()?.let { put("os_version", it) }
+        put("device_class", Contexto.deviceClass())
+        Contexto.timeZone()?.let { put("time_zone", it) }
         userId?.let { put("user_id", it) }
         elementKey?.let { put("element_key", it) }
         durationMs?.let { put("duration_ms", it) }

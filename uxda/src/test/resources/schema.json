@@ -186,6 +186,39 @@
       "obrigatorio": false,
       "min": 0,
       "max_valor": 86400000
+    },
+    {
+      "nome": "os_name",
+      "tipo": "texto",
+      "obrigatorio": false,
+      "max": 32,
+      "nota": "RF-MET-12. O nome do sistema operativo, tal como o dispositivo o diz: Android, iOS, Windows, macOS, Linux, ChromeOS. Serve para segmentar, e nunca para identificar"
+    },
+    {
+      "nome": "os_version",
+      "tipo": "texto",
+      "obrigatorio": false,
+      "max": 32,
+      "nota": "Só a parte maior da versão. A versão completa de um sistema operativo é um sinal de impressão digital, e a segmentação não precisa dela"
+    },
+    {
+      "nome": "device_class",
+      "tipo": "enum",
+      "obrigatorio": false,
+      "valores": [
+        "telemovel",
+        "tablet",
+        "computador",
+        "desconhecido"
+      ],
+      "nota": "RF-MET-12. Três classes e não o modelo: o modelo identifica, a classe segmenta"
+    },
+    {
+      "nome": "time_zone",
+      "tipo": "texto",
+      "obrigatorio": false,
+      "max": 64,
+      "nota": "A geografia deste produto, e é o fuso IANA do dispositivo (Europe/Lisbon). Nunca IP, nunca coordenadas, nunca permissão de localização. Ver o ADR 0022"
     }
   ],
   "regras": [
@@ -212,6 +245,10 @@
     {
       "codigo": "propriedade_conhecida",
       "descricao": "Uma propriedade que não esteja em propriedades_permitidas é recusada, e não ignorada: um campo que passa em silêncio é um campo que ninguém percebe que está a ser deitado fora."
+    },
+    {
+      "codigo": "fuso_e_nao_lugar",
+      "descricao": "O time_zone é um fuso IANA (Europe/Lisbon), ou UTC. Coordenadas, cidades escritas à mão e qualquer coisa com dígitos decimais são recusadas: a geografia deste produto é grosseira por construção, e um campo que aceitasse um par de coordenadas seria a porta por onde a localização exata entrava. Ver o ADR 0022"
     }
   ],
   "propriedades_opacas": {

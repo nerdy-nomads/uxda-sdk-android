@@ -97,6 +97,9 @@ object Uxda {
         ligado = true
         app = aplicacao
         opcoes = op
+        // Antes de qualquer evento: a classe do dispositivo precisa dos recursos da
+        // aplicação, e um evento emitido antes disto sairia com "desconhecido".
+        Contexto.iniciar(aplicacao)
 
         val prefs = aplicacao.getSharedPreferences("uxda", Context.MODE_PRIVATE)
         identidade = Identidade(prefs)

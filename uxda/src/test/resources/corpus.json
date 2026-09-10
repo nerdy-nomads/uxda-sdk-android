@@ -658,6 +658,129 @@
           "grupo_mensagem": "62431dbd"
         }
       }
+    },
+    {
+      "nome": "segmentação completa: sistema operativo, classe e fuso",
+      "valido": true,
+      "evento": {
+        "event_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3401",
+        "project_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3402",
+        "organization_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3403",
+        "anonymous_id": "a1",
+        "device_id": "d1",
+        "session_id": "s1",
+        "event_type": "ecra",
+        "screen_key": "inicio",
+        "occurred_at": "2027-03-14T10:00:00Z",
+        "app_version": "1.0.0",
+        "platform": "android",
+        "identity_scope": "aplicacao",
+        "capture_level": "padrao",
+        "os_name": "Android",
+        "os_version": "14",
+        "device_class": "telemovel",
+        "time_zone": "Europe/Lisbon"
+      }
+    },
+    {
+      "nome": "classe de dispositivo fora da lista fechada",
+      "valido": false,
+      "evento": {
+        "event_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3401",
+        "project_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3402",
+        "organization_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3403",
+        "anonymous_id": "a1",
+        "device_id": "d1",
+        "session_id": "s1",
+        "event_type": "ecra",
+        "screen_key": "inicio",
+        "occurred_at": "2027-03-14T10:00:00Z",
+        "app_version": "1.0.0",
+        "platform": "android",
+        "identity_scope": "aplicacao",
+        "capture_level": "padrao",
+        "device_class": "frigorifico"
+      }
+    },
+    {
+      "nome": "um par de coordenadas não passa por fuso horário",
+      "valido": false,
+      "evento": {
+        "event_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3401",
+        "project_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3402",
+        "organization_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3403",
+        "anonymous_id": "a1",
+        "device_id": "d1",
+        "session_id": "s1",
+        "event_type": "ecra",
+        "screen_key": "inicio",
+        "occurred_at": "2027-03-14T10:00:00Z",
+        "app_version": "1.0.0",
+        "platform": "android",
+        "identity_scope": "aplicacao",
+        "capture_level": "padrao",
+        "time_zone": "38.7223,-9.1393"
+      }
+    },
+    {
+      "nome": "nome de sistema operativo demasiado longo",
+      "valido": false,
+      "evento": {
+        "event_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3431",
+        "project_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3402",
+        "organization_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3403",
+        "anonymous_id": "a1",
+        "device_id": "d1",
+        "session_id": "s1",
+        "event_type": "ecra",
+        "screen_key": "inicio",
+        "occurred_at": "2027-03-14T10:00:00Z",
+        "app_version": "1.0.0",
+        "platform": "android",
+        "identity_scope": "aplicacao",
+        "capture_level": "padrao",
+        "os_name": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+      }
+    },
+    {
+      "nome": "uma cidade escrita à mão não é um fuso IANA",
+      "valido": false,
+      "evento": {
+        "event_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3432",
+        "project_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3402",
+        "organization_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3403",
+        "anonymous_id": "a1",
+        "device_id": "d1",
+        "session_id": "s1",
+        "event_type": "ecra",
+        "screen_key": "inicio",
+        "occurred_at": "2027-03-14T10:00:00Z",
+        "app_version": "1.0.0",
+        "platform": "android",
+        "identity_scope": "aplicacao",
+        "capture_level": "padrao",
+        "time_zone": "lisboa"
+      }
+    },
+    {
+      "nome": "UTC é um fuso válido, e não tem barra",
+      "valido": true,
+      "evento": {
+        "event_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3433",
+        "project_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3402",
+        "organization_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3403",
+        "anonymous_id": "a1",
+        "device_id": "d1",
+        "session_id": "s1",
+        "event_type": "ecra",
+        "screen_key": "inicio",
+        "occurred_at": "2027-03-14T10:00:00Z",
+        "app_version": "1.0.0",
+        "platform": "android",
+        "identity_scope": "aplicacao",
+        "capture_level": "padrao",
+        "time_zone": "UTC"
+      }
     }
   ]
 }
