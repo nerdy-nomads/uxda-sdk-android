@@ -181,7 +181,8 @@ internal class Mensagens(
         props["origem_mensagem"] = origem
         props["visivel"] = visivel
         if (classe != null) props["classe_erro"] = classe
-        if (campo != null) props["campo_associado"] = campo.take(64)
+        // A chave do elemento, inteira: 512 como o `element_key`.
+        if (campo != null) props["campo_associado"] = campo.take(512)
         passo().takeIf { it.isNotEmpty() }?.let { props["passo"] = it.take(64) }
 
         var chaveFinal = chave

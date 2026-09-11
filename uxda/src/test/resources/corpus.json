@@ -781,6 +781,99 @@
         "capture_level": "padrao",
         "time_zone": "UTC"
       }
+    },
+    {
+      "nome": "o campo do abandono leva a chave do elemento inteira, e ela passa dos 64",
+      "valido": true,
+      "evento": {
+        "event_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3301",
+        "project_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3302",
+        "organization_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3303",
+        "anonymous_id": "a1",
+        "device_id": "d1",
+        "session_id": "s1",
+        "event_type": "terminal",
+        "screen_key": "dados",
+        "occurred_at": "2026-09-07T10:00:00Z",
+        "app_version": "1.0.0",
+        "platform": "web",
+        "identity_scope": "aplicacao",
+        "capture_level": "padrao",
+        "properties": {
+          "estado": "abandonado",
+          "campo_abandono": "/dados/v1|f=testid|t=data-testid=campo-numero-de-identificacao-fiscal|c=BODY>MAIN>SECTION>FORM>DIV>INPUT|r=9f12b287|p=textbox"
+        }
+      }
+    },
+    {
+      "nome": "a mensagem leva a chave do campo que a produziu, e ela passa dos 64",
+      "valido": true,
+      "evento": {
+        "event_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3301",
+        "project_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3302",
+        "organization_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3303",
+        "anonymous_id": "a1",
+        "device_id": "d1",
+        "session_id": "s1",
+        "event_type": "mensagem",
+        "screen_key": "dados",
+        "occurred_at": "2026-09-07T10:00:00Z",
+        "app_version": "1.0.0",
+        "platform": "web",
+        "identity_scope": "aplicacao",
+        "capture_level": "padrao",
+        "message_key": "nif_invalido",
+        "message_kind": "erro",
+        "properties": {
+          "campo_associado": "/dados/v1|f=testid|t=data-testid=campo-numero-de-identificacao-fiscal|c=BODY>MAIN>SECTION>FORM>DIV>INPUT|r=9f12b287|p=textbox",
+          "classe_erro": "validacao"
+        }
+      }
+    },
+    {
+      "nome": "texto comprido no campo do abandono continua a ser recusado",
+      "valido": false,
+      "evento": {
+        "event_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3301",
+        "project_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3302",
+        "organization_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3303",
+        "anonymous_id": "a1",
+        "device_id": "d1",
+        "session_id": "s1",
+        "event_type": "terminal",
+        "screen_key": "dados",
+        "occurred_at": "2026-09-07T10:00:00Z",
+        "app_version": "1.0.0",
+        "platform": "web",
+        "identity_scope": "aplicacao",
+        "capture_level": "padrao",
+        "properties": {
+          "estado": "abandonado",
+          "campo_abandono": "o utilizador desistiu porque o formulario pedia demasiada coisa de uma vez so"
+        }
+      }
+    },
+    {
+      "nome": "uma propriedade que não é de identificador continua limitada aos 64",
+      "valido": false,
+      "evento": {
+        "event_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3301",
+        "project_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3302",
+        "organization_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3303",
+        "anonymous_id": "a1",
+        "device_id": "d1",
+        "session_id": "s1",
+        "event_type": "campo",
+        "screen_key": "dados",
+        "occurred_at": "2026-09-07T10:00:00Z",
+        "app_version": "1.0.0",
+        "platform": "web",
+        "identity_scope": "aplicacao",
+        "capture_level": "padrao",
+        "properties": {
+          "origem": "/dados/v1|f=testid|t=data-testid=campo-numero-de-identificacao-fiscal|c=BODY>MAIN>SECTION>FORM>DIV>INPUT|r=9f12b287|p=textbox"
+        }
+      }
     }
   ]
 }

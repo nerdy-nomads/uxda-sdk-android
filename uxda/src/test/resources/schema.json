@@ -249,6 +249,10 @@
     {
       "codigo": "fuso_e_nao_lugar",
       "descricao": "O time_zone é um fuso IANA (Europe/Lisbon), ou UTC. Coordenadas, cidades escritas à mão e qualquer coisa com dígitos decimais são recusadas: a geografia deste produto é grosseira por construção, e um campo que aceitasse um par de coordenadas seria a porta por onde a localização exata entrava. Ver o ADR 0022"
+    },
+    {
+      "codigo": "identificador_e_chave_de_elemento",
+      "descricao": "Uma propriedade de identificador aceita até 512 caracteres **quando tem a forma de uma chave de elemento** (contém `v1|f=`), e é dispensada da verificação de conteúdo, tal como o próprio campo `element_key`. Sem essa forma, volta a valer o limite de 64 caracteres e a regra `sem_conteudo`: a exceção é para o identificador que o SDK constrói, e não uma porta para texto livre comprido."
     }
   ],
   "propriedades_opacas": {
@@ -326,5 +330,12 @@
         "campo_associado"
       ]
     }
+  },
+  "propriedades_identificador": {
+    "$comment": "Propriedades cujo valor é uma chave de elemento, e não texto. Uma chave de elemento é o tuplo de cinco sinais do ADR 0003 já serializado, e passa facilmente dos 64 caracteres que a regra `sem_conteudo` permite a um valor de propriedade. Sem esta lista, os dois SDK truncavam-na aos 64 e o campo do abandono deixava de corresponder ao campo que produziu os outros números: o RF-GRA-18, que o documento chama a informação mais accionável do conjunto, ficava com um identificador que não junta com nada. Aqui valem os mesmos 512 caracteres do campo `element_key`, e pela mesma razão.",
+    "chaves": [
+      "campo_abandono",
+      "campo_associado"
+    ]
   }
 }

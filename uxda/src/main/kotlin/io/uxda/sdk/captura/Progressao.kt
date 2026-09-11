@@ -60,7 +60,10 @@ internal class Progressao(
         val props = HashMap<String, Any>()
         props["estado"] = estado
         val campo = campoDeAbandono()
-        if (estado == Terminal.ABANDONADO && campo.isNotEmpty()) props["campo_abandono"] = campo.take(64)
+        // **512 e não 64.** O que vai aqui é a chave do elemento, e truncá-la aos 64
+        // de um valor de texto fazia o campo do abandono deixar de corresponder ao
+        // campo que produziu a hesitação e os erros.
+        if (estado == Terminal.ABANDONADO && campo.isNotEmpty()) props["campo_abandono"] = campo.take(512)
         emitir(Tipos.TERMINAL, null, null, props)
     }
 
