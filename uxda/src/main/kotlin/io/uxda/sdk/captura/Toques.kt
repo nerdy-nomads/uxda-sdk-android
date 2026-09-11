@@ -7,8 +7,8 @@ import io.uxda.sdk.Seguranca
 import io.uxda.sdk.Tipos
 
 /**
- * Tentativas de interação: o que a pessoa tentou e não deu. Cartão 4.1,
- * RF-GRA-01 a RF-GRA-05 e RF-GRA-08.
+ * Tentativas de interação: o que a pessoa tentou e não deu. Cartões 4.1 e 9.1,
+ * RF-GRA-01 a RF-GRA-05, RF-GRA-08 e RF-IND-01 a RF-IND-03.
  *
  * O documento chama a estes os sinais mais subvalorizados que existem, e a razão
  * é simples: uma zona onde muita gente toca e nada acontece é uma falha de desenho
@@ -18,11 +18,29 @@ import io.uxda.sdk.Tipos
  * Em Android o caso do elemento desativado é mais fácil do que na web: a vista
  * está lá na árvore, com `isEnabled` a `false`, e vê-se. Na web o browser nem
  * despacha o evento.
+ *
+ * # O que o cartão 9.1 acrescentou, e é igual ao da web
+ *
+ * Três percentagens sobre o mesmo toque, porque respondem a perguntas diferentes:
+ * `toque_x` é do ecrã e desenha o mapa de calor; `alvo_x` é da caixa da vista e
+ * diz se a pessoa acertou no meio do botão ou na beira dele; e `alvo_caixa` é a
+ * caixa da vista no ecrã, de onde sai o esquema do cartão 9.2 **sem nunca
+ * fotografar nada**.
+ *
+ * A paridade com a web não é intenção: é medida pelo `./scripts/paridade.sh`, que
+ * compara a mesma tarefa nas duas plataformas evento a evento.
  */
 internal class Toques(
     private val emitir: (String, String?, Long?, Map<String, Any>?) -> Unit,
     private val agora: () -> Long,
     private val detalhado: () -> Boolean,
+    /**
+     * O rastreio individual do projeto (cartão 9.5, `RF-IND-09`).
+     *
+     * **É uma segunda condição, e não a mesma que o nível detalhado.** O nível diz
+     * quanta granularidade se capta; isto diz se é legítimo seguir uma pessoa.
+     */
+    private val individual: () -> Boolean = { false },
 ) {
     /** Uma rajada acaba quando passa este tempo sem outro toque no mesmo sítio. */
     private val janelaDeRajadaMs = 1200L
@@ -53,9 +71,66 @@ internal class Toques(
     private fun porCento(v: Float, total: Int): Int =
         ((v / maxOf(1, total)) * 100).toInt().coerceIn(0, 100)
 
-    private fun coordenadas(x: Float, y: Float, largura: Int, altura: Int): Map<String, Any> =
-        if (detalhado()) mapOf("toque_x" to porCento(x, largura), "toque_y" to porCento(y, altura))
-        else emptyMap()
+    /** As duas condições, e não uma: ver o comentário do construtor. */
+    private fun segue(): Boolean = detalhado() && individual()
+
+    /** A ordem desta interação **dentro do ecrã**, e não da sessão (RF-IND-01). */
+    private var ordem = 0
+
+    private fun coordenadas(x: Float, y: Float, largura: Int, altura: Int): Map<String, Any> {
+        ordem++
+        if (!segue()) return emptyMap()
+        return mapOf(
+            "toque_x" to porCento(x, largura),
+            "toque_y" to porCento(y, altura),
+            "visor_largura" to largura,
+            "visor_altura" to altura,
+            "ordem_na_sequencia" to ordem,
+        )
+    }
+
+    /**
+     * A caixa da vista no ecrã e o ponto dentro dela, em percentagem.
+     *
+     * Devolve vazio quando a vista não sabe onde está (largura ou altura a zero,
+     * que acontece numa vista ainda por desenhar): **melhor não desenhar do que
+     * desenhar no sítio errado**.
+     */
+    private fun doAlvo(v: View?, x: Float, y: Float, largura: Int, altura: Int): Map<String, Any> {
+        if (!segue() || v == null || v.width <= 0 || v.height <= 0) return emptyMap()
+        val pos = IntArray(2)
+        Seguranca.executar("toques.caixa") { v.getLocationOnScreen(pos) }
+        val esq = pos[0].toFloat()
+        val topo = pos[1].toFloat()
+        return mapOf(
+            "alvo_x" to porCento(x - esq, v.width),
+            "alvo_y" to porCento(y - topo, v.height),
+            "alvo_caixa" to listOf(
+                porCento(esq, largura), porCento(topo, altura),
+                porCento(v.width.toFloat(), largura), porCento(v.height.toFloat(), altura),
+            ).joinToString(","),
+        )
+    }
+
+    /**
+     * A posição de um toque **que funcionou**, para o evento de `toque` a levar.
+     * Cartão 9.1, RF-IND-02.
+     *
+     * # Porque é que isto existe, e é o defeito que corrigiu
+     *
+     * Os três casos em que nada acontece emitem-se aqui; o toque normal é emitido
+     * pela `Captura`, que é onde a identidade da vista se resolve. O resultado era
+     * que as coordenadas saíam nos toques mortos e **não saíam nos toques
+     * normais**, e o mapa de calor do cartão 9.2 ficava a desenhar só as falhas,
+     * que é o oposto de um mapa de calor.
+     *
+     * Deu-se por isso do lado da web, a correr a loja de ensaio no browser, e a
+     * paridade obrigou a corrigir os dois: o `./scripts/paridade.sh` compara a
+     * mesma tarefa nas duas plataformas evento a evento.
+     */
+    fun posicaoDoToque(v: View?, x: Float, y: Float, largura: Int, altura: Int): Map<String, Any> =
+        coordenadas(x, y, largura, altura) + doAlvo(v, x, y, largura, altura) +
+            mapOf("zona" to zonaDe(x, y, largura, altura))
 
     /** Um toque que não encontrou nada acionável debaixo do dedo. */
     fun semAlvo(x: Float, y: Float, largura: Int, altura: Int) {
@@ -66,10 +141,10 @@ internal class Toques(
     }
 
     /** Um toque num botão desativado, e ninguém lhe disse porquê. */
-    fun desativado(chave: String?, x: Float, y: Float, largura: Int, altura: Int) {
+    fun desativado(chave: String?, vista: View?, x: Float, y: Float, largura: Int, altura: Int) {
         emitir(
             Tipos.TOQUE_DESATIVADO, chave, null,
-            coordenadas(x, y, largura, altura) + mapOf(
+            coordenadas(x, y, largura, altura) + doAlvo(vista, x, y, largura, altura) + mapOf(
                 "zona" to zonaDe(x, y, largura, altura),
                 "alvo_desativado" to true,
             ),
@@ -77,8 +152,25 @@ internal class Toques(
     }
 
     /** Tocou enquanto a aplicação estava ocupada, sem o perceber. */
-    fun emCarregamento(chave: String?) {
-        emitir(Tipos.TOQUE_EM_CARREGAMENTO, chave, null, mapOf("em_carregamento" to true))
+    fun emCarregamento(chave: String?, vista: View?, x: Float, y: Float, largura: Int, altura: Int) {
+        emCarregamento(chave, posicaoDoToque(vista, x, y, largura, altura))
+    }
+
+    /**
+     * A mesma coisa com a posição já calculada.
+     *
+     * **Existe para a posição de um gesto se calcular uma vez só.** O
+     * `coordenadas` avança o contador da ordem da interação, e um toque que
+     * emitisse o `em_carregamento` e o `toque` com duas chamadas gastava dois
+     * números de ordem no mesmo gesto: a sequência do `RF-IND-01` passava a ter
+     * buracos, e eles aparecem precisamente nos ecrãs lentos, que são os que
+     * alguém vai lá ver.
+     */
+    fun emCarregamento(chave: String?, onde: Map<String, Any>) {
+        emitir(
+            Tipos.TOQUE_EM_CARREGAMENTO, chave, null,
+            onde + mapOf("em_carregamento" to true),
+        )
     }
 
     /**
@@ -130,6 +222,7 @@ internal class Toques(
         fecharRajada()
         ecraMostradoEm = agora()
         jaInteragiu = false
+        ordem = 0
     }
 
     /** Uma vista desativada, ou marcada como tal para quem lê o ecrã. */

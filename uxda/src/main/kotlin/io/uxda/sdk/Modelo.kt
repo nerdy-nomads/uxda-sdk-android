@@ -122,6 +122,8 @@ object Tipos {
     const val TOQUE_REPETIDO = "toque_repetido"
     const val TOQUE_EM_CARREGAMENTO = "toque_em_carregamento"
     const val PRIMEIRA_INTERACAO = "primeira_interacao"
+    /** A profundidade de deslocamento, uma vez por ecrã. Cartão 9.1, RF-IND-05. */
+    const val DESLOCAMENTO = "deslocamento"
     const val CAMPO = "campo"
     const val PASSO = "passo"
     const val ESPERA = "espera"
@@ -134,7 +136,7 @@ object Tipos {
     /** Os da captura granular, que o cartão 4.5 põe em níveis. */
     val GRANULARES = listOf(
         TOQUE_SEM_ALVO, TOQUE_DESATIVADO, TOQUE_REPETIDO, TOQUE_EM_CARREGAMENTO,
-        PRIMEIRA_INTERACAO, CAMPO, PASSO, ESPERA, TERMINAL, AMBIENTE,
+        PRIMEIRA_INTERACAO, DESLOCAMENTO, CAMPO, PASSO, ESPERA, TERMINAL, AMBIENTE,
     )
 }
 
@@ -175,6 +177,17 @@ data class Configuracao(
      * exposição é que precisa de uma decisão de quem é responsável pelos dados.
      */
     val mensagensExpostas: List<String> = emptyList(),
+    /**
+     * O rastreio individual do projeto. Cartão 9.5, `RF-IND-09`.
+     *
+     * **Falso por omissão, e é a única desta lista que degrada para "não".** As
+     * outras medem tudo quando a configuração não chega, porque o `RF-CAP-10` diz
+     * que a degradação é decisão de quem opera. Esta é ao contrário, pela mesma
+     * razão que a lista de mensagens expostas está vazia: seguir o comportamento
+     * de uma pessoa é tratamento de dados pessoais pseudonimizados, e isso não
+     * pode começar por acidente de rede.
+     */
+    val rastreioIndividual: Boolean = false,
     val captura: List<String> = emptyList(),
     val versao: Int = 0,
 ) {
@@ -242,7 +255,14 @@ data class Configuracao(
                     (a.opt(i) as? String)?.takeIf { it.isNotEmpty() }?.let(expostas::add)
                 }
             }
-            return Configuracao(amostragem, nivel, detalhado, expostas.take(200), lista, o.optInt("versao", 0))
+            // **Só o booleano `true` liga.** A cadeia "true", o número 1 e a
+            // ausência deixam desligado: uma configuração meio escrita não pode
+            // ligar o rastreio individual, e é a mesma regra do SDK web.
+            val individual = o.opt("rastreio_individual") == true
+            return Configuracao(
+                amostragem, nivel, detalhado, expostas.take(200), individual,
+                lista, o.optInt("versao", 0),
+            )
         }
     }
 }

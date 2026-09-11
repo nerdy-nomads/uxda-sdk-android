@@ -44,6 +44,11 @@ dependencies {
     compileOnly("androidx.compose.ui:ui:1.7.6")
     compileOnly("androidx.fragment:fragment:1.8.5")
     compileOnly("com.squareup.okhttp3:okhttp:4.12.0")
+    // A `RecyclerView` é a única forma pública de saber quanto conteúdo há debaixo
+    // do ecrã numa lista que virtualiza (cartão 9.1). O `View` esconde os três
+    // números em métodos protegidos, e ela volta a torná-los públicos. `compileOnly`
+    // como os outros: quem não a usa não leva um byte dela.
+    compileOnly("androidx.recyclerview:recyclerview:1.3.2")
 
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.robolectric:robolectric:4.14.1")

@@ -133,6 +133,7 @@ object Uxda {
                 definirEcra = { ecraAtual = it },
                 medir = { bloco -> noFioPrincipal(bloco) },
                 nivel = { nivelEfetivo() },
+                individual = { configuracao.rastreioIndividual },
                 emVoo = { emVoo },
                 aoIrParaTras = {
                     // A sessão fica gravada e o que está em fila sai agora. O sistema

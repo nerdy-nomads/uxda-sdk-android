@@ -73,6 +73,11 @@ class Captura(
      * dizer.
      */
     private val mensagemExposta: (String) -> Boolean = { false },
+    /**
+     * O rastreio individual do projeto (cartão 9.5, `RF-IND-09`). **Desligado por
+     * omissão**, e é a única das configurações que degrada para "não".
+     */
+    private val individual: () -> Boolean = { false },
 ) : Application.ActivityLifecycleCallbacks {
 
     /* ------------------------------------------------------ captura granular */
@@ -83,7 +88,8 @@ class Captura(
     private val emitirGranular: (String, String?, Long?, Map<String, Any>?) -> Unit =
         { tipo, elemento, duracao, props -> emitir(tipo, elemento, duracao, emptyMap(), props) }
 
-    private val toques = Toques(emitirGranular, { agora() }, detalhado)
+    private val toques = Toques(emitirGranular, { agora() }, detalhado, individual)
+    private val deslocamento = Deslocamento(emitirGranular, { agora() }, detalhado, individual)
     private val campos = Campos(emitirGranular, { agora() }, detalhado, essencial)
     internal val progressao = Progressao(emitirGranular, { agora() }, essencial) { campos.campoDeAbandono() }
 
@@ -125,6 +131,10 @@ class Captura(
         // Um ecrã novo é um passo novo, e é onde a contagem até à primeira
         // interação recomeça: o RF-GRA-08 mede-a por ecrã, e não por sessão.
         toques.ecraNovo()
+        // **Antes do passo, e com a árvore do ecrã novo.** A profundidade do ecrã
+        // que acabou pertence a esse ecrã, e o `ecraNovo` fecha-o antes de ligar
+        // o seguinte.
+        deslocamento.ecraNovo(a.window?.decorView, nomeDoEcra(a))
         progressao.passo(nomeDoEcra(a))
         campos.mostrar()
         progressao.mostrar()
@@ -146,6 +156,10 @@ class Captura(
             // morrer: vale mais do que qualquer outro evento.
             emitir(Tipos.PLANO_FUNDO, null, tempoAtivoMs, emptyMap(), null)
             toques.fecharRajada()
+            // O último ecrã de cada sessão é aquele em que as pessoas desistem, e
+            // sem isto a profundidade dele perdia-se sempre.
+            deslocamento.fechar()
+            deslocamento.desligar()
             campos.esconder()
             aoIrParaTras()
             // O abandono marca-se **depois** do plano de fundo: a ordem no
@@ -242,13 +256,20 @@ class Captura(
         // Um botão desativado, e ninguém lhe disse porquê. Em Android a vista está
         // na árvore e vê-se; na web o browser nem despacha o evento.
         if (toques.estaDesativado(vista)) {
-            toques.desativado(chave, x, y, raiz.width, raiz.height)
+            toques.desativado(chave, vista, x, y, raiz.width, raiz.height)
             return
         }
         if (chave == null) return
-        if (emVoo() > 0) toques.emCarregamento(chave)
+        // **A posição calcula-se uma vez por gesto**, e vai nos dois eventos que
+        // ele possa produzir: o contador da ordem da interação avança por chamada,
+        // e duas chamadas no mesmo toque abriam um buraco na sequência.
+        val onde = toques.posicaoDoToque(vista, x, y, raiz.width, raiz.height)
+        if (emVoo() > 0) toques.emCarregamento(chave, onde)
         toques.anotar(chave)
-        emitir(Tipos.TOQUE, chave, null, emptyMap(), null)
+        // **A posição vai no toque que funciona, e não só nos que falham** (cartão
+        // 9.1). Vem vazia sem rastreio individual, e é isso que faz desligá-lo no
+        // cartão 9.5 parar mesmo de recolher.
+        emitir(Tipos.TOQUE, chave, null, emptyMap(), onde)
         // A validação da plataforma aparece **depois** de uma ação, e não a cada
         // toque: um `setError` num campo é o `invalid` da web, e quem o dispara é
         // carregar num botão, não pousar o dedo numa lista.

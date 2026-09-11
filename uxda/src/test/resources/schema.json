@@ -70,6 +70,7 @@
         "toque_repetido",
         "toque_em_carregamento",
         "primeira_interacao",
+        "deslocamento",
         "campo",
         "passo",
         "espera",
@@ -276,7 +277,7 @@
       ]
     },
     "toque": {
-      "$comment": "RF-GRA-01 a RF-GRA-05. As coordenadas vão em percentagem da janela, e não em pixels: um mapa de calor tem de sobrepor telemóveis e computadores",
+      "$comment": "RF-GRA-01 a RF-GRA-05 e RF-IND-01 a RF-IND-03. As coordenadas vão em percentagem, e não em pixels: um mapa de calor tem de sobrepor telemóveis e computadores. São duas percentagens diferentes e é de propósito: `toque_x` é da janela, e é o que desenha o mapa; `alvo_x` é da caixa do elemento, e é o que diz se a pessoa acertou no meio do botão ou na beira dele. A `alvo_caixa` é a caixa do elemento na janela, e é dela que a reconstrução esquemática do ecrã se faz, sem nenhuma captura",
       "chaves": [
         "toque_x",
         "toque_y",
@@ -284,7 +285,13 @@
         "repeticoes",
         "intervalo_ms",
         "alvo_desativado",
-        "em_carregamento"
+        "em_carregamento",
+        "alvo_x",
+        "alvo_y",
+        "alvo_caixa",
+        "visor_largura",
+        "visor_altura",
+        "ordem_na_sequencia"
       ]
     },
     "campo": {
@@ -328,6 +335,14 @@
         "visivel",
         "grupo_mensagem",
         "campo_associado"
+      ]
+    },
+    "deslocamento": {
+      "$comment": "RF-IND-05. A profundidade é a percentagem da página que chegou a estar visível, e o `alcance_ms` é quanto tempo demorou a lá chegar. Emite-se **uma vez por ecrã**, quando ele se fecha: um evento por deslocamento multiplicava o volume por cem e dizia a mesma coisa",
+      "chaves": [
+        "profundidade",
+        "alcance_ms",
+        "visor_altura"
       ]
     }
   },

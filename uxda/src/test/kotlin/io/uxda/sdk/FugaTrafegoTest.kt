@@ -128,7 +128,7 @@ class FugaTrafegoTest {
 
         // E o resto do que a captura sabe fazer.
         toques.semAlvo(10f, 20f, 1080, 2400)
-        toques.desativado("id=pagar", 10f, 20f, 1080, 2400)
+        toques.desativado("id=pagar", null, 10f, 20f, 1080, 2400)
         toques.anotar("id=pagar")
         toques.fecharRajada()
         campos.aoErrar(editaveis[0], "validacao_nativa")

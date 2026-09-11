@@ -5,6 +5,7 @@ import android.widget.Button
 import android.widget.EditText
 import android.widget.LinearLayout
 import io.uxda.sdk.captura.Campos
+import io.uxda.sdk.captura.Deslocamento
 import io.uxda.sdk.captura.Progressao
 import io.uxda.sdk.captura.Toques
 import org.junit.Assert.assertEquals
@@ -41,7 +42,7 @@ class GranularTest {
         val t = Toques(s.emitir, { relogio }, { false })
 
         t.semAlvo(50f, 900f, 1080, 2400)
-        t.desativado("id=confirmar", 10f, 10f, 1080, 2400)
+        t.desativado("id=confirmar", null, 10f, 10f, 1080, 2400)
         repeat(3) { t.anotar("id=pagar"); relogio += 200 }
         t.fecharRajada()
 
@@ -55,18 +56,106 @@ class GranularTest {
     }
 
     @Test
-    fun `a zona vai sempre e as coordenadas so no detalhado`() {
+    fun `um toque que funciona traz a posicao, e nao so os que falham`() {
+        // **É o defeito que a loja de ensaio da web apanhou no browser**, e que a
+        // paridade obrigou a corrigir dos dois lados: os três casos em que nada
+        // acontece emitem-se no `Toques`, e o toque normal é emitido pela
+        // `Captura`. As coordenadas saíam nos toques mortos e não nos que
+        // funcionam, e o mapa de calor do cartão 9.2 ficava a desenhar só as
+        // falhas, que é o oposto de um mapa de calor.
+        val s = Saida()
+        val t = Toques(s.emitir, { 0 }, { true }, { true })
+        val botao = android.widget.Button(atividade()).also {
+            it.layout(0, 0, 200, 100)
+        }
+        val onde = t.posicaoDoToque(botao, 540f, 1200f, 1080, 2400)
+        assertEquals("em percentagem da janela", 50, onde["toque_x"])
+        assertEquals(50, onde["toque_y"])
+        assertEquals(1080, onde["visor_largura"])
+        assertEquals(1, onde["ordem_na_sequencia"])
+        assertEquals("3x5", onde["zona"])
+        assertTrue("a caixa do alvo, para o esquema do ecrã", onde.containsKey("alvo_caixa"))
+
+        // Sem rastreio individual, a mesma chamada devolve só a zona: desligar tem
+        // de parar de recolher, e não só de mostrar.
+        val sem = Saida()
+        val semRastreio = Toques(sem.emitir, { 0 }, { true }, { false })
+            .posicaoDoToque(botao, 540f, 1200f, 1080, 2400)
+        assertEquals("3x5", semRastreio["zona"])
+        assertEquals(null, semRastreio["toque_x"])
+        assertEquals(null, semRastreio["alvo_caixa"])
+    }
+
+    @Test
+    fun `a ordem da interacao nao salta quando o mesmo toque produz dois eventos`() {
+        // Um toque numa aplicação ocupada produz **dois** eventos: o
+        // `toque_em_carregamento` e o `toque`. Com a posição calculada duas vezes,
+        // o contador da ordem avançava duas, e a sequência do RF-IND-01 ficava com
+        // buracos precisamente nos ecrãs lentos, que são os que alguém vai lá ver.
+        val s = Saida()
+        val t = Toques(s.emitir, { 0 }, { true }, { true })
+        val onde = t.posicaoDoToque(null, 100f, 100f, 1080, 2400)
+        t.emCarregamento("id=pagar", onde)
+        val emCarregamento = s.doTipo(Tipos.TOQUE_EM_CARREGAMENTO).first().third!!
+        assertEquals(1, emCarregamento["ordem_na_sequencia"])
+
+        val segundo = t.posicaoDoToque(null, 100f, 100f, 1080, 2400)
+        assertEquals("o gesto seguinte, e não o terceiro", 2, segundo["ordem_na_sequencia"])
+    }
+
+    @Test
+    fun `a zona vai sempre e as coordenadas precisam das duas condicoes`() {
         val padrao = Saida()
-        Toques(padrao.emitir, { 0 }, { false }).semAlvo(540f, 1200f, 1080, 2400)
+        Toques(padrao.emitir, { 0 }, { false }, { true }).semAlvo(540f, 1200f, 1080, 2400)
         val p = padrao.doTipo(Tipos.TOQUE_SEM_ALVO).first().third!!
         assertEquals("3x5", p["zona"])
         assertEquals(null, p["toque_x"])
 
+        // **O nível detalhado sozinho não chega** (cartão 9.1). Ele diz quanta
+        // granularidade se capta; o rastreio individual diz se é legítimo seguir
+        // uma pessoa, e são decisões diferentes de quem opera (RF-IND-09).
+        val semRastreio = Saida()
+        Toques(semRastreio.emitir, { 0 }, { true }, { false }).semAlvo(540f, 1200f, 1080, 2400)
+        val sr = semRastreio.doTipo(Tipos.TOQUE_SEM_ALVO).first().third!!
+        assertEquals("a zona continua a sair: agrupa e não localiza ninguém", "3x5", sr["zona"])
+        assertEquals(null, sr["toque_x"])
+
         val detalhado = Saida()
-        Toques(detalhado.emitir, { 0 }, { true }).semAlvo(540f, 1200f, 1080, 2400)
+        Toques(detalhado.emitir, { 0 }, { true }, { true }).semAlvo(540f, 1200f, 1080, 2400)
         val d = detalhado.doTipo(Tipos.TOQUE_SEM_ALVO).first().third!!
         assertEquals("em percentagem da janela, para caber no mesmo mapa que a web", 50, d["toque_x"])
         assertEquals(50, d["toque_y"])
+        // As dimensões do visor vão junto: sem elas, duas percentagens iguais em
+        // ecrãs de tamanhos diferentes são o mesmo ponto no mapa e coisas
+        // diferentes na vida (RF-IND-02).
+        assertEquals(1080, d["visor_largura"])
+        assertEquals(2400, d["visor_altura"])
+        assertEquals("a primeira interação deste ecrã", 1, d["ordem_na_sequencia"])
+    }
+
+    @Test
+    fun `9_1 a profundidade conta o fundo do visor, e nao o topo`() {
+        // A mesma conta do SDK web, e é isso que faz os dois mapas comparáveis.
+        // Com o topo, um ecrã que cabe inteiro dava 0%, que é o oposto do que
+        // aconteceu: foi visto todo sem ninguém ter de descer.
+        val d = Deslocamento({ _: String, _: String?, _: Long?, _: Map<String, Any>? -> }, { 0 }, { true }, { true })
+        assertEquals(100, d.profundidadeDe(0, 800, 800))
+        assertEquals(50, d.profundidadeDe(0, 800, 1600))
+        assertEquals(100, d.profundidadeDe(800, 800, 1600))
+        assertEquals(75, d.profundidadeDe(400, 800, 1600))
+        assertEquals("o salto elástico não inventa página", 100, d.profundidadeDe(2000, 800, 1600))
+    }
+
+    @Test
+    fun `9_1 a ordem da interacao conta-se por ecra, e nao por sessao`() {
+        val s = Saida()
+        val t = Toques(s.emitir, { 0 }, { true }, { true })
+        t.semAlvo(10f, 10f, 1080, 2400)
+        t.semAlvo(20f, 20f, 1080, 2400)
+        t.ecraNovo()
+        t.semAlvo(30f, 30f, 1080, 2400)
+        val ordens = s.doTipo(Tipos.TOQUE_SEM_ALVO).map { it.third!!["ordem_na_sequencia"] }
+        assertEquals(listOf(1, 2, 1), ordens)
     }
 
     @Test

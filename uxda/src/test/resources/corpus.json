@@ -874,6 +874,106 @@
           "origem": "/dados/v1|f=testid|t=data-testid=campo-numero-de-identificacao-fiscal|c=BODY>MAIN>SECTION>FORM>DIV>INPUT|r=9f12b287|p=textbox"
         }
       }
+    },
+    {
+      "nome": "um toque do rastreio individual leva as três percentagens e o visor",
+      "valido": true,
+      "evento": {
+        "event_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3401",
+        "project_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3402",
+        "organization_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3403",
+        "anonymous_id": "a1",
+        "device_id": "d1",
+        "session_id": "s1",
+        "event_type": "toque_desativado",
+        "screen_key": "metodo",
+        "occurred_at": "2026-09-07T10:00:00Z",
+        "app_version": "1.0.0",
+        "platform": "web",
+        "identity_scope": "aplicacao",
+        "capture_level": "detalhado",
+        "properties": {
+          "toque_x": 42,
+          "toque_y": 78,
+          "alvo_x": 7,
+          "alvo_y": 50,
+          "alvo_caixa": "5,75,90,6",
+          "visor_largura": 390,
+          "visor_altura": 844,
+          "ordem_na_sequencia": 12,
+          "zona": "2x7",
+          "alvo_desativado": true
+        }
+      }
+    },
+    {
+      "nome": "a profundidade de deslocamento é um evento próprio, uma vez por ecrã",
+      "valido": true,
+      "evento": {
+        "event_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3401",
+        "project_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3402",
+        "organization_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3403",
+        "anonymous_id": "a1",
+        "device_id": "d1",
+        "session_id": "s1",
+        "event_type": "deslocamento",
+        "screen_key": "catalogo",
+        "occurred_at": "2026-09-07T10:00:00Z",
+        "app_version": "1.0.0",
+        "platform": "web",
+        "identity_scope": "aplicacao",
+        "capture_level": "detalhado",
+        "properties": {
+          "profundidade": 64,
+          "alcance_ms": 8200,
+          "visor_altura": 844
+        }
+      }
+    },
+    {
+      "nome": "a caixa do alvo não pode transportar texto por mascarar",
+      "valido": false,
+      "evento": {
+        "event_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3401",
+        "project_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3402",
+        "organization_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3403",
+        "anonymous_id": "a1",
+        "device_id": "d1",
+        "session_id": "s1",
+        "event_type": "toque_desativado",
+        "screen_key": "metodo",
+        "occurred_at": "2026-09-07T10:00:00Z",
+        "app_version": "1.0.0",
+        "platform": "web",
+        "identity_scope": "aplicacao",
+        "capture_level": "detalhado",
+        "properties": {
+          "alvo_caixa": "o botao de confirmar o pagamento de 1234567 kwanzas"
+        }
+      }
+    },
+    {
+      "nome": "uma coordenada continua a ser uma propriedade conhecida, e nada mais passa",
+      "valido": false,
+      "evento": {
+        "event_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3401",
+        "project_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3402",
+        "organization_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3403",
+        "anonymous_id": "a1",
+        "device_id": "d1",
+        "session_id": "s1",
+        "event_type": "toque_sem_alvo",
+        "screen_key": "metodo",
+        "occurred_at": "2026-09-07T10:00:00Z",
+        "app_version": "1.0.0",
+        "platform": "web",
+        "identity_scope": "aplicacao",
+        "capture_level": "detalhado",
+        "properties": {
+          "toque_x": 10,
+          "toque_z": 10
+        }
+      }
     }
   ]
 }

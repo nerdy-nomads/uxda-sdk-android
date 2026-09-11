@@ -130,9 +130,14 @@ recusado, e não mascarado do outro lado. O desenho inteiro está no
 - **Não ignora a rede medida nem a poupança de bateria.** Abranda em vez de
   desligar: desligar daria dados com buracos exatamente nos utilizadores com pior
   ligação, que são os que mais abandonam.
-- **Não leva dependências.** Nenhuma em tempo de execução. O Compose e o OkHttp são
-  dependências de compilação: quem os usa ganha a integração, quem não os usa não
-  leva um byte deles por nossa causa.
+- **Não leva dependências.** Nenhuma em tempo de execução. O Compose, o OkHttp e a
+  `RecyclerView` são dependências de compilação: quem os usa ganha a integração, quem
+  não os usa não leva um byte deles por nossa causa.
+- **Não fotografa o ecrã.** Não é uma promessa: é o `SemEcraTest`, que percorre o
+  código publicado e falha se encontrar `PixelCopy`, `MediaProjection`,
+  `drawToBitmap`, `getDrawingCache`, `Canvas(` ou mais cinco. O mapa de calor do
+  cartão `9.2` desenha-se sobre um esquema reconstruído das caixas que os toques
+  observaram, e nunca sobre uma imagem.
 
 ## Estado: existe, corre num emulador a sério, e está medido
 
@@ -210,6 +215,24 @@ medição, e obrigou a medir outra vez.
 dois identificadores diferentes anulavam tudo, e uma versão nova que renomeia
 `pagar` para `botao_pagamento` perdia o elemento. Corrigiu-se nos dois SDK e na
 ingestão, que é quem decide.
+
+## O rastreio individual: duas condições, e percentagens
+
+As coordenadas de um toque, a caixa da vista em que ele caiu, a ordem da interação
+dentro do ecrã e a profundidade de deslocamento **só saem com duas coisas ligadas**:
+o nível **detalhado**, que diz quanta granularidade se capta, e o **rastreio
+individual** do projeto, que diz se é legítimo seguir uma pessoa (`RF-IND-09`). Com
+uma condição só, desligar o rastreio deixava de mostrar e continuava a recolher. A
+zona continua a sair sempre: ela agrupa e não localiza ninguém.
+
+**A profundidade em Android mede-se de duas maneiras**, porque o `View` esconde os
+três números em métodos protegidos: uma `RecyclerView` volta a torná-los públicos (e é
+por isso que ela entra como dependência **de compilação apenas**), e um `ScrollView`
+tem um filho só, cuja altura é a do conteúdo. Quando nenhum dos dois sabe responder,
+**não se inventa**: fica o que se sabe com certeza, que é ter chegado ao fim ou não.
+
+A conta final é a mesma da web, e é isso que faz os dois mapas serem comparáveis. A
+paridade não é intenção: é medida pelo `./scripts/paridade.sh`.
 
 ## Como correr
 
