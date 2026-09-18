@@ -12,6 +12,7 @@ import io.uxda.sdk.fila.Armazem
 import io.uxda.sdk.fila.Fila
 import io.uxda.sdk.fila.Transporte
 import io.uxda.sdk.identidade.Identidade
+import io.uxda.sdk.inquerito.Inqueritos
 import org.json.JSONObject
 import java.io.File
 
@@ -41,6 +42,7 @@ object Uxda {
     private lateinit var fila: Fila
     private lateinit var armazem: Armazem
     private var captura: Captura? = null
+    private var inqueritos: Inqueritos? = null
     private var trabalho: HandlerThread? = null
     private var mao: Handler? = null
 
@@ -115,6 +117,26 @@ object Uxda {
 
         trabalho = HandlerThread("uxda").apply { start() }
         mao = Handler(trabalho!!.looper)
+
+        // O componente de inquérito liga-se sempre, com ou sem captura automática: sem
+        // inquéritos na configuração não faz nada, e com eles precisa de saber que
+        // atividade está à vista desde a primeira. Numa barreira própria, para um
+        // defeito dele nunca impedir a captura de arrancar.
+        Seguranca.executar("uxda.inqueritos.ligar") {
+            val inq = Inqueritos(
+                prefs = aplicacao.getSharedPreferences("uxda.inqueritos", Context.MODE_PRIVATE),
+                transporte = Transporte(6000),
+                servidor = op.servidor,
+                chaveDoProjeto = op.chave,
+                versaoApp = { op.versaoApp ?: "0.0.0" },
+                anonimo = { identidade.anonimo },
+                utilizador = { identidade.utilizador },
+                ecra = { ecraAtual },
+                passo = { captura?.progressao?.passoAtual() ?: "" },
+            )
+            aplicacao.registerActivityLifecycleCallbacks(inq)
+            inqueritos = inq
+        }
 
         emPlanoDeFundo {
             arrancarConfiguracao(transporte, op)
@@ -243,6 +265,20 @@ object Uxda {
         }
     }
 
+    /**
+     * Pede o inquérito com esta chave, agora (`RF-PER-01`).
+     *
+     * **Salta o sorteio, e só o sorteio.** A fadiga do dispositivo, o limite de uma
+     * pergunta por sessão e a decisão do servidor valem como para os gatilhos: a
+     * aplicação escolhe o momento, e não quantas vezes se pergunta a mesma pessoa. Corre
+     * no fio de fundo, depois de a configuração remota ter chegado.
+     */
+    @JvmStatic
+    fun inquerito(chave: String) = Seguranca.executar("uxda.inquerito") {
+        val inq = inqueritos ?: return@executar
+        emPlanoDeFundo { inq.pedir(chave.take(64)) }
+    }
+
     @JvmStatic
     fun esquecer() = Seguranca.executar("uxda.esquecer") { identidade.utilizador = null }
 
@@ -336,6 +372,11 @@ object Uxda {
     fun parar() = Seguranca.executar("uxda.parar") {
         captura?.let { app?.unregisterActivityLifecycleCallbacks(it) }
         captura = null
+        inqueritos?.let {
+            app?.unregisterActivityLifecycleCallbacks(it)
+            it.parar()
+        }
+        inqueritos = null
         trabalho?.quitSafely()
         trabalho = null
         mao = null
@@ -374,6 +415,10 @@ object Uxda {
                 val r = estadoDaRede(a)
                 mapOf("ligado" to r.ligado, "medida" to r.medida, "poupanca" to r.poupanca)
             } ?: emptyMap<String, Any>()),
+            // O componente de inquérito: quantos pedidos, quantos o servidor autorizou,
+            // quantos se mostraram e se responderam, e o motivo da última decisão. É a
+            // única forma de saber porque é que um inquérito não apareceu.
+            "inqueritos" to (inqueritos?.resumo() ?: emptyMap<String, Any>()),
             "eventosEmitidos" to emitidos,
             "eventosRecusados" to recusados,
             "msNoFioPrincipal" to Math.round(msNoFioPrincipal * 100) / 100.0,
@@ -438,14 +483,22 @@ object Uxda {
         val inicio = agoraNoFio()
         var contar = false
         Seguranca.executar("uxda.emitir") {
-            if (!ligado || !amostrado) return@executar
-            if (!configuracao.capturaTipo(tipo)) return@executar
+            if (!ligado) return@executar
+            val paraFila = amostrado && configuracao.capturaTipo(tipo)
+            // **Os gatilhos dos inquéritos veem os eventos que a amostra e o nível não
+            // deixam sair.** A amostragem da captura decide o que se envia, e o
+            // inquérito tem a sua própria amostragem: sem isto, uma pessoa fora da
+            // amostra de medição nunca seria perguntada, e uma instituição no nível
+            // essencial não podia ligar um gatilho ao `passo`. Nada disto sai do
+            // dispositivo: o evento que não vai para a fila morre aqui.
+            val observador = inqueritos?.takeIf { it.querEventos }
+            if (!paraFila && observador == null) return@executar
             val agora = System.currentTimeMillis()
             val ecra = ecraAtual
             val versao = opcoes?.versaoApp ?: "0.0.0"
             val nivel = nivelEfetivo()
             contar = true
-            emitidos++
+            if (paraFila) emitidos++
             emPlanoDeFundo {
                 val ev = Evento(
                     eventId = Ids.uuid(),
@@ -465,7 +518,10 @@ object Uxda {
                     messageTextMasked = extras["message_text_masked"],
                     properties = propriedades,
                 )
-                fila.juntar(ev)
+                if (paraFila) fila.juntar(ev)
+                // Depois da fila, e numa barreira própria: um gatilho que rebenta não
+                // pode custar o evento.
+                observador?.let { o -> Seguranca.executar("uxda.inqueritos.observar") { o.observar(ev, agora) } }
             }
         }
         // Uma emissão que venha de fora da captura (o `track` de quem integra, por
@@ -514,6 +570,7 @@ object Uxda {
             cache != null -> { origemConfig = "cache"; cache }
             else -> { origemConfig = "omissao"; Configuracao.SEGURA }
         }
+        inqueritos?.configurar(configuracao.inqueritos)
         amostrado = Ids.naAmostra(identidade.anonimo, configuracao.amostragem)
         // Sementes diferentes: quem está na amostra de ser medido não tem de ser a
         // mesma gente que está na amostra do detalhe.

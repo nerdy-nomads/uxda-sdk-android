@@ -1,0 +1,105 @@
+# Ensaio do componente de inquérito no emulador (cartões 14.1 e 14.2), 2026-09-14
+# Aduela_Movel (emulator-5554, Android 16, 1080x2400), exemplo comV1Debug contra ferramentas/stub-inqueritos.py na porta 8791
+
+stub-inqueritos à escuta em 0.0.0.0:8791 (do emulador: http://10.0.2.2:8791)
+[config] chave=None
+[config] chave=uxda_des_ensaio_inqueritos
+[eventos] lote de 2 (total 2 em 1 lotes)
+[eventos] lote de 3 (total 5 em 2 lotes)
+[eventos] lote de 4 (total 9 em 3 lotes)
+[elegibilidade] {"inquerito":"facilidade_do_pagamento","anonymous_id":"9683de38-fa7b-443e-8e99-4bfa0f50b0ef","user_id":""}  ->  mostrar=true pedido_id=379be84d-fb26-480f-8a5b-31c5c73e78a5
+[eventos] lote de 1 (total 10 em 4 lotes)
+[eventos] lote de 1 (total 11 em 5 lotes)
+[eventos] lote de 1 (total 12 em 6 lotes)
+[eventos] lote de 1 (total 13 em 7 lotes)
+[resposta] corpo recebido:
+{
+  "resposta_id": "dddd5454-ab6f-4eee-9617-d9ee2279aeb4",
+  "inquerito": "facilidade_do_pagamento",
+  "formato": "esforco",
+  "nota": 6,
+  "escolhas": [],
+  "comentario": "O cartao {id} foi recusado, escrevam para {email}",
+  "ocorrida_em": "2026-09-14T05:49:04.211Z",
+  "enviada_em": "2026-09-14T05:49:04.213Z",
+  "pedido_id": "379be84d-fb26-480f-8a5b-31c5c73e78a5",
+  "origem": "componente",
+  "contexto": {
+    "tarefa": "pagar_uma_encomenda",
+    "passo": "/loja",
+    "funcionalidade": "pagamento",
+    "gatilho": "apos_conclusao",
+    "ecra": "/loja",
+    "tentativa_inicio": "2026-09-14T05:47:49.918Z"
+  },
+  "dispositivo": {
+    "platform": "android",
+    "app_version": "1.4.0-com-sdk",
+    "os_name": "Android",
+    "os_version": "16",
+    "device_class": "telemovel",
+    "time_zone": "Africa/Luanda"
+  },
+  "anonymous_id": "9683de38-fa7b-443e-8e99-4bfa0f50b0ef",
+  "user_id": ""
+}
+[resposta] aceite: comentário mascarado no dispositivo = 'O cartao {id} foi recusado, escrevam para {email}'
+[config] chave=uxda_des_ensaio_inqueritos
+[eventos] lote de 2 (total 15 em 8 lotes)
+[elegibilidade] {"inquerito":"motivo_da_demora","anonymous_id":"0d9b3cd8-250e-4e19-a9a6-ad3a6761d071","user_id":""}  ->  mostrar=true pedido_id=da992291-f879-4ebb-a92a-c3c3aa64fada
+[eventos] lote de 3 (total 18 em 9 lotes)
+[eventos] lote de 1 (total 19 em 10 lotes)
+[resposta] corpo recebido:
+{
+  "resposta_id": "cdf87132-2d97-4ca0-9898-fa2871a4323d",
+  "inquerito": "motivo_da_demora",
+  "formato": "escolha",
+  "escolhas": [
+    "demorou",
+    "erro"
+  ],
+  "comentario": "Liguei para o {id} e ninguem atendeu",
+  "ocorrida_em": "2026-09-14T05:50:03.650Z",
+  "enviada_em": "2026-09-14T05:50:03.653Z",
+  "pedido_id": "da992291-f879-4ebb-a92a-c3c3aa64fada",
+  "origem": "componente",
+  "contexto": {
+    "tarefa": "pagar_uma_encomenda",
+    "passo": "/loja",
+    "funcionalidade": "",
+    "gatilho": "pedido",
+    "ecra": "/loja"
+  },
+  "dispositivo": {
+    "platform": "android",
+    "app_version": "1.4.0-com-sdk",
+    "os_name": "Android",
+    "os_version": "16",
+    "device_class": "telemovel",
+    "time_zone": "Africa/Luanda"
+  },
+  "anonymous_id": "0d9b3cd8-250e-4e19-a9a6-ad3a6761d071",
+  "user_id": ""
+}
+[resposta] aceite: comentário mascarado no dispositivo = 'Liguei para o {id} e ninguem atendeu'
+[eventos] lote de 1 (total 20 em 11 lotes)
+
+# Diagnóstico do SDK depois do segundo pedido na mesma sessão:
+"inqueritos": {   "configurados": 3,   "fase": "livre",   "pedidos": 1,   "autorizados": 1,   "recusados": 0,   "semResposta": 0,   "mostrados": 1,   "respondidos": 1,   "enviadas": 1,   "enviosFalhados": 0,   "ultimoMotivo": "ja_perguntado_na_sessao"  }
+
+# Segunda passagem, contra a ingestão verdadeira (2026-09-14, 07:12 a 07:14)
+# Aduela_Movel sem janela, exemplo comV1Debug instalado com a chave do parque de ensaio e
+# -PuxdaServidor=http://10.0.2.2:8710, depois de `pm clear` para começar uma sessão nova.
+#
+# Dois defeitos saíram da primeira passagem e foram corrigidos antes desta:
+#   - o contexto levava `passo: "/loja"` (o ecrã) quando a regra não fixava passo, e a
+#     análise partia as respostas de uma tarefa num passo que a definição não tem;
+#   - o pedido pela API chamava-se `pedido` no Android e `manual` no web.
+#
+# O que a ingestão registou, e o que ficou na tabela `respostas`:
+elegibilidade de inquérito  inquerito=porque_desistiu  mostrar=true  motivo=pode
+porque_desistiu  choices=['demorou','custos_de_envio']  source=componente  platform=android  device_class=telemovel  os=Android 16  step_key=''  associated=1
+recomendacao     score=9  trigger=manual  platform=android  step_key=''
+# Capturas: exemplo/ensaio-inquerito-escolha-backend-real*.png e
+# exemplo/ensaio-inquerito-recomendacao-backend-real*.png, com o tema que a consola
+# guardou (verde #0b3d2e, fundo #fbf8f1, serif, cantos de 20 px).

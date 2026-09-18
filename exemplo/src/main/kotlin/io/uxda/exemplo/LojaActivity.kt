@@ -77,6 +77,11 @@ class LojaActivity : androidx.appcompat.app.AppCompatActivity() {
             Ponte.erroTecnico("resposta_ilegivel", "pagamento")
         }
 
+        // O inquérito pedido pela aplicação (cartão 14.1). Com `?.`, porque a segunda
+        // versão do esquema não tem estes botões.
+        findViewById<Button?>(R.id.inquerito_escolha)?.setOnClickListener { Ponte.inquerito("porque_desistiu") }
+        findViewById<Button?>(R.id.inquerito_recomendacao)?.setOnClickListener { Ponte.inquerito("recomendacao") }
+
         findViewById<Button>(R.id.falhar).setOnClickListener {
             Thread {
                 // Porta fechada de propósito: um 404 é a aplicação a dizer que não,

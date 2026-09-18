@@ -72,6 +72,9 @@ internal class Campos(
         var i = 0
         var achou = 0
         fun percorrer(x: View) {
+            // O comentário do inquérito não é um campo do formulário, e contá-lo
+            // mudava a ordem prevista de todos os que vêm depois dele.
+            if (x is VistaDoSdk) return
             if (x is EditText) {
                 i++
                 if (x === v) achou = i
@@ -189,6 +192,9 @@ internal class Campos(
         var vazios = 0
         var comErro = 0
         fun percorrer(v: View) {
+            // O retrato da submissão é do formulário da aplicação. O cartão do
+            // inquérito está na mesma árvore e não entra nele (cartão 14.1).
+            if (v is VistaDoSdk) return
             if (v is EditText) {
                 val e = estadoDe(v)
                 e.comprimento = comprimentoDe(v)

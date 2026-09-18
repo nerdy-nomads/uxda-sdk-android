@@ -226,7 +226,7 @@ class Captura(
                     (ev.keyCode == KeyEvent.KEYCODE_ENTER || ev.keyCode == KeyEvent.KEYCODE_NUMPAD_ENTER)
                 ) {
                     val foco = atividade.currentFocus
-                    if (foco is EditText) submeter(atividade, foco)
+                    if (foco is EditText && !DoSdk.ehDoSdk(foco)) submeter(atividade, foco)
                 }
             } }
             return original.dispatchKeyEvent(ev)
@@ -235,10 +235,15 @@ class Captura(
 
     private fun anotarToque(a: Activity, x: Float, y: Float) {
         val raiz = a.window?.decorView ?: return
+        val vista = vistaNoPonto(raiz, x, y)
+        // Um toque no cartão do inquérito **não é da aplicação**, e não conta para
+        // nada: nem toque, nem toque sem alvo, nem primeira interação, nem
+        // atividade da tentativa. É por isso que a pergunta vem antes de tudo o
+        // resto, e não só antes da emissão (cartão 14.1).
+        if (DoSdk.ehDoSdk(vista)) return
         toques.primeiraInteracao()
         progressao.marcarAtividade()
 
-        val vista = vistaNoPonto(raiz, x, y)
         // Um toque onde não havia nada acionável. É o sinal que o documento chama
         // dos mais subvalorizados que existem, e que nenhum funil revela.
         //
@@ -293,6 +298,10 @@ class Captura(
         }
         fun procurar(v: View, nivel: Int): View? {
             if (nivel > 24 || v.visibility != View.VISIBLE || !dentro(v)) return null
+            // O cartão do SDK devolve-se inteiro e sem descer: quem chama só quer
+            // saber que o dedo caiu nele, e descer era pagar a leitura de vistas
+            // que nunca vão sair.
+            if (v is VistaDoSdk) return v
             if (v is ViewGroup && !ElementoCompose.ehCompose(v)) {
                 for (i in v.childCount - 1 downTo 0) {
                     procurar(v.getChildAt(i), nivel + 1)?.let { return it }
@@ -360,8 +369,12 @@ class Captura(
         if (!arvore.isAlive) return
         arvore.addOnGlobalFocusChangeListener { antiga, nova ->
             medir { Seguranca.executar("captura.foco") {
-                antiga?.let { sairDoCampo(it) }
-                nova?.let { entrarNoCampo(it) }
+                // O comentário do inquérito é um campo de escrita como outro
+                // qualquer, e sem esta guarda saía como `foco` e `campo` da
+                // aplicação, com as contagens de caracteres do que a pessoa nos
+                // escreveu a nós.
+                antiga?.takeUnless { DoSdk.ehDoSdk(it) }?.let { sairDoCampo(it) }
+                nova?.takeUnless { DoSdk.ehDoSdk(it) }?.let { entrarNoCampo(it) }
             } }
         }
     }
@@ -593,6 +606,9 @@ class Captura(
         // dela também não. Numa aplicação com abas ou com um menu lateral fechado,
         // isso é a maior parte da árvore.
         if (nivel > 24 || v.visibility != View.VISIBLE) return
+        // O ramo do SDK não é da aplicação: um erro de validação lá dentro seria
+        // nosso, e não dela.
+        if (v is VistaDoSdk) return
         bloco(v)
         if (v is ViewGroup) for (i in 0 until v.childCount) percorrer(v.getChildAt(i), nivel + 1, bloco)
     }

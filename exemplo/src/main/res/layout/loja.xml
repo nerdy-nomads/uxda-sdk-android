@@ -135,6 +135,24 @@
             android:layout_height="wrap_content"
             android:text="Erro que ninguém vê" />
 
+        <!--
+            O componente de inquérito dos cartões 14.1 e 14.2. O de esforço não tem botão:
+            dispara sozinho, pelo gatilho `apos_conclusao`, quando se toca em pagar. Estes
+            dois são a aplicação a pedir pela chave (`Uxda.inquerito`), que salta o
+            sorteio e mais nada.
+        -->
+        <Button
+            android:id="@+id/inquerito_escolha"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Pedir o inquérito de escolha" />
+
+        <Button
+            android:id="@+id/inquerito_recomendacao"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Pedir o inquérito de recomendação" />
+
         <LinearLayout
             android:id="@+id/avisos"
             android:layout_width="match_parent"

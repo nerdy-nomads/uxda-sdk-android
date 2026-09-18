@@ -19,5 +19,6 @@ object Ponte {
     fun pedidoAcabou(ms: Long) = Uxda.pedidoAcabou(ms)
     fun mensagem(chave: String, tipo: String) = Uxda.mensagem(chave, tipo)
     fun erroTecnico(chave: String, operacao: String) = Uxda.erroTecnico(chave, operacao)
+    fun inquerito(chave: String) = Uxda.inquerito(chave)
     fun intercetor() = UxdaOkHttp.intercetor()
 }

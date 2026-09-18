@@ -190,6 +190,11 @@ data class Configuracao(
     val rastreioIndividual: Boolean = false,
     val captura: List<String> = emptyList(),
     val versao: Int = 0,
+    /**
+     * Os inquéritos do componente de avaliação (cartões 14.1 e 14.2). **Vazio por
+     * omissão**, e sem eles o SDK não pergunta nada a ninguém.
+     */
+    val inqueritos: io.uxda.sdk.inquerito.ConfigInqueritos = io.uxda.sdk.inquerito.ConfigInqueritos.VAZIA,
 ) {
     /**
      * O que cada nível deixa passar. ADR 0010, RF-GRA-26, e a mesma lista do SDK
@@ -259,9 +264,15 @@ data class Configuracao(
             // ausência deixam desligado: uma configuração meio escrita não pode
             // ligar o rastreio individual, e é a mesma regra do SDK web.
             val individual = o.opt("rastreio_individual") == true
+            // **Numa barreira própria.** Um bloco de inquéritos ilegível deixa o
+            // componente sem perguntas, e não pode levar consigo a configuração da
+            // captura: a medição é o produto, e o inquérito é uma parte dele.
+            val inqueritos = Seguranca.protegido("config.inqueritos", io.uxda.sdk.inquerito.ConfigInqueritos.VAZIA) {
+                io.uxda.sdk.inquerito.ConfigInqueritos.deJson(o.opt("inqueritos"))
+            }
             return Configuracao(
                 amostragem, nivel, detalhado, expostas.take(200), individual,
-                lista, o.optInt("versao", 0),
+                lista, o.optInt("versao", 0), inqueritos,
             )
         }
     }

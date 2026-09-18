@@ -145,7 +145,8 @@ internal class Deslocamento(
      * tenha visto.
      */
     private fun queRola(v: View?): View? {
-        if (v == null) return null
+        // Um comentário comprido no cartão do inquérito rola, e não é o ecrã.
+        if (v == null || v is VistaDoSdk) return null
         if (v.canScrollVertically(1) || v.canScrollVertically(-1)) return v
         val grupo = v as? android.view.ViewGroup ?: return null
         for (i in 0 until grupo.childCount) {

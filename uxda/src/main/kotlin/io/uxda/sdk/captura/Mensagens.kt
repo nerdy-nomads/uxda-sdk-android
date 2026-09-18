@@ -134,7 +134,7 @@ internal class Mensagens(
      * escreveu.
      */
     internal fun textoDe(v: View, profundidade: Int = 3): String {
-        if (v is EditText) return ""
+        if (v is EditText || v is VistaDoSdk) return ""
         if (v is TextView) return v.text?.toString()?.trim() ?: ""
         if (v !is ViewGroup || profundidade <= 0) return ""
         val partes = StringBuilder()
@@ -230,7 +230,7 @@ internal class Mensagens(
         if (v !is ViewGroup || profundidade <= 0) return false
         for (i in 0 until v.childCount) {
             val filho = v.getChildAt(i)
-            if (filho.visibility != View.VISIBLE) continue
+            if (filho.visibility != View.VISIBLE || filho is VistaDoSdk) continue
             if (ehMensagem(filho)) return true
             if (temMensagemDentro(filho, profundidade - 1)) return true
         }
@@ -301,6 +301,10 @@ internal class Mensagens(
                 // Uma vista escondida não mostra mensagem nenhuma a ninguém, e o
                 // ramo debaixo dela também não.
                 if (v.visibility != View.VISIBLE) return
+                // A pergunta e o agradecimento do inquérito são texto nosso, e não
+                // mensagens da aplicação: no catálogo do RF-MSG-09 seriam uma
+                // entrada que o cliente nunca escreveu.
+                if (v is VistaDoSdk) return
                 restantes--
                 analisar(v)
                 if (v is ViewGroup) for (i in 0 until v.childCount) percorrer(v.getChildAt(i), nivel + 1)

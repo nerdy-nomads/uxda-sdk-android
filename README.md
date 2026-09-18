@@ -234,10 +234,51 @@ tem um filho só, cuja altura é a do conteúdo. Quando nenhum dos dois sabe res
 A conta final é a mesma da web, e é isso que faz os dois mapas serem comparáveis. A
 paridade não é intenção: é medida pelo `./scripts/paridade.sh`.
 
+## O componente de avaliação: um cartão por baixo, que não bloqueia nada
+
+Fase 14, cartões `14.1` e `14.2`, com o mesmo contrato do web
+([`docs/contrato-das-respostas.md`](../../docs/contrato-das-respostas.md)) e as mesmas
+regras ([ADR 0034](../../docs/adr/0034-uma-resposta-e-anonima-ate-alguem-decidir.md)).
+
+**Nenhuma linha na aplicação.** As regras chegam na configuração remota, e o SDK avalia os
+gatilhos sobre os eventos que ele próprio emite: depois de concluir uma tarefa, depois de
+a abandonar (no arranque da sessão seguinte, e o estado sobrevive à morte do processo),
+depois de um erro, na primeira utilização neste dispositivo, ou por amostragem. Quem quiser
+pedir pelo código chama `Uxda.inquerito(chave)`, que salta o sorteio e mais nada.
+
+| Peça | O que faz |
+|---|---|
+| `.../inquerito/ConfiguracaoDosInqueritos.kt` | Lê o bloco `inqueritos` à defesa: lixo dá uma lista vazia, e a configuração da captura fica |
+| `.../inquerito/Condicoes.kt` | Os critérios das definições de tarefa, com os mesmos oito operadores do `core/definition` |
+| `.../inquerito/Gatilhos.kt`, `FadigaLocal.kt` | Os cinco gatilhos, e a primeira linha da fadiga. **Quem decide é o servidor** |
+| `.../inquerito/Inqueritos.kt`, `Corpos.kt` | O caminho inteiro: sorteio, fadiga, elegibilidade fora do fio principal, cartão, envio com uma repetição |
+| `.../inquerito/CartaoDoInquerito.kt` | O cartão, com o tema da instituição e áreas de toque de 48 dp |
+| `.../captura/VistaDoSdk.kt` | A marca que a captura respeita: o cartão nunca é um toque, um campo ou uma submissão da aplicação |
+
+**As regras que não se dobram**, cada uma com ensaio:
+
+- **Uma em dez por omissão**, e nunca dois inquéritos na mesma sessão. Sem resposta do
+  servidor, não se mostra.
+- **Não bloqueia.** O cartão entra no fundo do ecrã, sem escurecer o resto nem roubar o
+  foco: os botões por cima dele continuam a responder, e há captura disso
+  (`exemplo/ensaio-inquerito-nao-bloqueia.png`). Uma rotação retira o cartão e larga a
+  atividade, para não a prender.
+- **O comentário sai mascarado**, com a máscara das mensagens e o chão que o servidor
+  exige. A bateria de fuga (`InqueritoFugaTest`) enche a loja de segredos, responde com um
+  cartão e um correio no comentário, e procura-os em tudo o que sai.
+- **Um defeito do cartão não parte a aplicação nem para a captura**, pela barreira do
+  `Seguranca.kt`.
+
+**Visto no emulador duas vezes.** Contra um duplo do contrato (`ferramentas/stub-inqueritos.py`),
+com o esforço e a escolha, e depois contra a ingestão verdadeira, com a escolha múltipla e
+a recomendação de 0 a 10: as duas respostas chegaram à tabela com o tema da consola no
+cartão. O registo das duas passagens, e os dois defeitos que a primeira apanhou, estão em
+`ferramentas/inqueritos-medido.txt`.
+
 ## Como correr
 
 ```bash
-./gradlew :uxda:testDebugUnitTest      # os ensaios, incluindo fuga e injeção de falhas
+./gradlew :uxda:testDebugUnitTest --max-workers=3   # 160 ensaios, incluindo fuga e injeção de falhas
 ./ferramentas/orcamento.sh             # o acréscimo ao tamanho da aplicação
 ./ferramentas/ensaio-dispositivo.sh    # morte do processo e dia sem rede, num telemóvel
 ./ferramentas/ensaio-bateria.sh 60     # bateria e CPU, com e sem SDK, no mesmo aparelho

@@ -47,5 +47,6 @@ object Ponte {
     fun pedidoAcabou(ms: Long) = Unit
     fun mensagem(chave: String, tipo: String) = Unit
     fun erroTecnico(chave: String, operacao: String) = Unit
+    fun inquerito(chave: String) = Unit
     fun intercetor(): Interceptor = Interceptor { cadeia -> cadeia.proceed(cadeia.request()) }
 }
