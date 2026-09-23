@@ -163,11 +163,21 @@ aparelho de gama alta esconde tudo o que se queria ver.
 
 | O quê | Medido | Limite |
 |---|---|---|
-| Acréscimo ao APK da aplicação | **48 KB** | 300 KB (`RNF-SDK-03`) |
+| Acréscimo ao APK da aplicação | **48 KB** na fase 3; **80 KB** com os inquéritos, já encolhido (2026-09-23) | 300 KB (`RNF-SDK-03`) |
+| Acréscimo em código (dex), sem R8 na aplicação anfitriã | **163 KB** (2026-09-23; eram 309 KB antes de encolher) | 300 KB |
 | Fio principal, por evento capturado | **0,40 ms** | 1 ms (`RNF-SDK-05`) |
 | Bateria, uma hora de uso com e sem SDK | **+0,3% de CPU numa hora** | não mensurável (`RNF-SDK-04`) |
 | Sobrevivência de identidades entre duas versões | **100% (9 de 9)** | - |
-| Ensaios | 53, incluindo fuga de conteúdo e injeção de falhas | - |
+| Ensaios | 162 (2026-09-23; eram 53 na fase 3), incluindo fuga de conteúdo e injeção de falhas | - |
+
+**O SDK publica-se já encolhido pelo R8** (`uxda/proguard-rules.pro`). Os inquéritos da
+fase 14 levaram o código de 187 para 305 KB de dex, o orçamento esteve vermelho no CI cinco
+dias sem ninguém o ver, e o 17.3 passou-o para 309 KB. O que pesava eram os nomes, os
+metadados do Kotlin e a depuração das classes internas: encolhida, a biblioteca fica em 163
+KB, com a API pública (`Uxda`, `UxdaProvider`, `UxdaOkHttp`, `Opcoes`, `Terminal`, `Tipos`,
+`VistaDoSdk`) exatamente como estava, e os números de linha nos traços. **Verificado no
+emulador com a variante de lançamento**: toques, campos, teclas, o erro de rede, o ecrã em
+Compose com a identidade dos elementos, e o número do cartão sem sair do dispositivo.
 
 **O que 0,3% vale, e é a parte que interessa.** A mesma variante **sem** SDK, em
 duas horas seguidas do mesmo guião, gastou 101 510 ms e 94 230 ms de CPU: 7,7% de

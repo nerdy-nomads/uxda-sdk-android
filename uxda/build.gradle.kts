@@ -14,7 +14,9 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            // Publica-se encolhido, com a API pública guardada (`proguard-rules.pro`).
+            isMinifyEnabled = true
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
     }
 
