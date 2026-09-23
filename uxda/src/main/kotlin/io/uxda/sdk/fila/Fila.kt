@@ -92,18 +92,27 @@ class Fila(
         if (lote.isEmpty()) return@protegido 0
         ultimoEnvio = agora()
 
+        // Os erros internos do SDK viajam no mesmo lote (cartão 17.3): só o sítio, o tipo
+        // e quantas vezes, e nunca a mensagem.
+        val erros = io.uxda.sdk.Seguranca.errosPorReportar()
         val corpo = JSONObject().apply {
             put("versao_protocolo", 1)
             put("sdk", "uxda-sdk-android")
             put("versao_sdk", VERSAO)
             put("enviado_em", io.uxda.sdk.Relogio.iso(agora()))
             put("eventos", JSONArray().also { a -> lote.forEach { a.put(it.paraJson()) } })
+            if (erros.isNotEmpty()) {
+                put("erros_sdk", JSONArray().also { a ->
+                    erros.forEach { e -> a.put(JSONObject().put("onde", e.onde).put("tipo", e.tipo).put("contagem", e.contagem)) }
+                })
+            }
         }.toString()
 
         val r = transporte.enviar(url, corpo, cabecalhos())
         when {
             r.estado in 200..299 -> {
                 armazem.confirmar(lote)
+                io.uxda.sdk.Seguranca.confirmarReportados(erros)
                 enviados += lote.size
                 bytes += corpo.length
                 tentativas = 0
@@ -115,6 +124,7 @@ class Fila(
             // sempre por causa de uma chave errada de quem integra.
             r.estado in 400..499 && r.estado != 408 && r.estado != 429 -> {
                 armazem.confirmar(lote)
+                io.uxda.sdk.Seguranca.confirmarReportados(erros)
                 falhas++
                 ultimoErro = "recusado ${r.estado}"
                 0

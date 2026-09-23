@@ -139,6 +139,35 @@ class FilaTest {
     }
 
     @Test
+    fun `os erros internos viajam no lote sem a mensagem e saem da conta`() {
+        Seguranca.limpar()
+        Seguranca.executar("captura.campo") { throw IllegalStateException("o cartão 4111 1111") }
+        Seguranca.executar("captura.campo") { throw IllegalStateException("outra vez") }
+        Seguranca.executar("captura.toque") { throw NullPointerException() }
+        val a = armazem()
+        val t = TransporteFalso { Transporte.Resposta(202, """{"sucesso":true}""") }
+        val f = fila(a, t)
+        f.juntar(evento(1))
+        f.descarregar()
+        val erros = org.json.JSONObject(t.pedidos[0]).getJSONArray("erros_sdk")
+        val porSitio = (0 until erros.length()).associate {
+            val e = erros.getJSONObject(it)
+            "${e.getString("onde")}|${e.getString("tipo")}" to e.getInt("contagem")
+        }
+        assertEquals(mapOf("captura.campo|IllegalStateException" to 2, "captura.toque|NullPointerException" to 1), porSitio)
+        assertTrue("a mensagem de um erro saiu do dispositivo", !t.pedidos[0].contains("4111"))
+        assertTrue("o que o servidor recebeu não sai da conta", Seguranca.errosPorReportar().isEmpty())
+    }
+
+    @Test
+    fun `os erros por reportar nao crescem sem limite`() {
+        Seguranca.limpar()
+        for (i in 0 until 50) Seguranca.executar("sitio.$i") { throw RuntimeException("x") }
+        assertEquals(20, Seguranca.errosPorReportar().size)
+        Seguranca.limpar()
+    }
+
+    @Test
     fun `uma recusa definitiva nao fica a repetir para sempre`() {
         val a = armazem()
         val t = TransporteFalso { Transporte.Resposta(401, """{"erro":"chave inválida"}""") }

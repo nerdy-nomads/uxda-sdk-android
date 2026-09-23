@@ -153,7 +153,7 @@ Os cartões `3.1` a `3.4` estão fechados.
 | `.../identidade/Elemento.kt` | Os cinco sinais em vistas clássicas |
 | `.../identidade/ElementoCompose.kt` | Os mesmos sinais na árvore semântica fundida, por reflexão |
 | `.../identidade/Mascara.kt` | O resumo do rótulo, regra a regra igual ao do web |
-| `.../Seguranca.kt` | A barreira. Apanha `Throwable`, e não `Exception` |
+| `.../Seguranca.kt` | A barreira. Apanha `Throwable`, e não `Exception`, e **conta cada erro** por sítio e nome da classe, que segue no lote seguinte em `erros_sdk`, sem a mensagem (ADR 0045) |
 | `exemplo/` | A mesma loja de ensaio da web, **sem uma linha de instrumentação**, em quatro variantes |
 
 ### Os números, medidos e não estimados
