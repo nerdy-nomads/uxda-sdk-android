@@ -80,6 +80,14 @@ Nada disto é necessário. Tudo isto melhora a estabilidade da identidade:
 | `android:tag="uxda:mensagem=saldo_insuficiente"` | Dá **chave** a uma mensagem, e aí o texto dela nem sai do dispositivo |
 | `android:id="@+id/erro_saldo"` | O nome do recurso classifica a mensagem sozinho: `erro_`, `aviso_`, `sucesso_` |
 
+## O que capta, campo a campo
+
+[`CAMPOS.md`](CAMPOS.md) lista cada campo e cada propriedade que este SDK envia, com a
+finalidade e a ligação à linha do código que o produz, neste repositório e no do outro SDK.
+É gerada a partir do esquema (`python3 scripts/campos-capturados.py`, na raiz do projeto) e
+**um ensaio falha se o SDK enviar um campo que ela não lista**, ou se uma ligação deixar de
+apontar para uma linha que produz o campo (cartão 18.5).
+
 ## A bateria de fuga cobre toda a captura (cartão 18.2)
 
 `FugaTotalTest.kt` arranca o SDK inteiro contra um servidor HTTP a sério, dentro do ensaio,

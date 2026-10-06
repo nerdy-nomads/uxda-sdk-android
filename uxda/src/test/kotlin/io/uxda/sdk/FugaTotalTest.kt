@@ -306,4 +306,50 @@ class FugaTotalTest {
         assertTrue("saíram menos eventos do que pessoas: a corrida não provava nada", eventos > n)
         assertEquals(emptyList<String>(), achadas.take(5))
     }
+
+    /* ------------------------------ a página pública dos campos (18.5) */
+
+    private val pagina: String by lazy {
+        listOf(java.io.File("../CAMPOS.md"), java.io.File("CAMPOS.md")).first { it.exists() }.readText()
+    }
+    private val documentados: Set<String> by lazy {
+        Regex("^\\| `([a-z_]+)` \\|", RegexOption.MULTILINE).findAll(pagina).map { it.groupValues[1] }.toSet() +
+            Regex("^- `([a-z_]+)`(?:, `([a-z_]+)`)?:", RegexOption.MULTILINE).findAll(pagina)
+                .flatMap { listOf(it.groupValues[1], it.groupValues[2]) }.filter { it.isNotEmpty() }
+    }
+
+    @Test
+    fun `cada ligacao da pagina aponta para uma linha do Android que produz o campo`() {
+        val r = Regex("^\\| `([a-z_]+)` \\|.*?\\]\\(https://github\\.com/nerdy-nomads/uxda-sdk-android/blob/master/([^#)]+)#L(\\d+)\\)", RegexOption.MULTILINE)
+        var vistas = 0
+        for (m in r.findAll(pagina)) {
+            val (campo, ficheiro, linha) = m.destructured
+            val f = listOf(java.io.File("../$ficheiro"), java.io.File(ficheiro)).first { it.exists() || it.path == ficheiro }
+            assertTrue("$campo: $ficheiro não existe", f.exists())
+            val texto = f.readLines().getOrElse(linha.toInt() - 1) { "" }
+            assertTrue("$campo: $ficheiro:$linha já não o produz ($texto). Correr python3 scripts/campos-capturados.py",
+                texto.contains(campo) || texto.contains("propriedadesDoCliente"))
+            vistas++
+        }
+        assertTrue("só $vistas ligações verificadas", vistas > 60)
+    }
+
+    @Test
+    fun `o codigo nao captura nenhum campo que a pagina nao liste`() {
+        val bruto = corrida()
+        val vistos = HashSet<String>()
+        for (corpo in recebidos) {
+            val lote = JSONObject(corpo)
+            lote.keys().forEach { vistos += it }
+            val evs = lote.optJSONArray("eventos") ?: continue
+            for (i in 0 until evs.length()) {
+                val ev = evs.getJSONObject(i)
+                ev.keys().forEach { vistos += it }
+                ev.optJSONObject("properties")?.keys()?.forEach { vistos += it }
+            }
+        }
+        val nao = vistos.filter { it !in documentados }
+        assertEquals("o SDK enviou campos que a página pública não lista", emptyList<String>(), nao)
+        assertTrue("só ${vistos.size} campos vistos (${bruto.length} bytes)", vistos.size > 40)
+    }
 }
