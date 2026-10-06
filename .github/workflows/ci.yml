@@ -31,13 +31,13 @@ jobs:
       # linha vermelha no meio de oitenta ensaios é uma linha que se lê como "os
       # testes falharam", e esta não é um teste como os outros.
       - name: Bateria de fuga de conteúdo
-        run: ./gradlew :uxda:testDebugUnitTest --tests '*Fuga*'
+        run: ./gradlew :uxea:testDebugUnitTest --tests '*Fuga*'
 
       - name: Ensaios
-        run: ./gradlew :uxda:testDebugUnitTest
+        run: ./gradlew :uxea:testDebugUnitTest
 
       - name: Empacotar
-        run: ./gradlew :uxda:assembleRelease
+        run: ./gradlew :uxea:assembleRelease
 
       - name: Orçamento de tamanho
         run: ./ferramentas/orcamento.sh
@@ -47,4 +47,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ensaios
-          path: uxda/build/reports/tests/
+          path: uxea/build/reports/tests/

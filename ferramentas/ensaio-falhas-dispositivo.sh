@@ -13,8 +13,8 @@ set -uo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
 
 ADB="${ADB:-$HOME/Android/Sdk/platform-tools/adb}"
-PACOTE="${PACOTE:-io.uxda.exemplo.com}"
-ATIVIDADE="$PACOTE/io.uxda.exemplo.LojaActivity"
+PACOTE="${PACOTE:-io.uxea.exemplo.com}"
+ATIVIDADE="$PACOTE/io.uxea.exemplo.LojaActivity"
 
 passo() { printf '\n\033[1m%s\033[0m\n' "$*"; }
 ok()    { printf '  \033[32mok\033[0m     %s\n' "$*"; }
@@ -26,7 +26,7 @@ usar() { for y in 718 328 448 566 844 970; do "$ADB" shell input tap 540 "$y" >/
 
 # A outra variante fica a escrever o diagnóstico dela no mesmo registo de dois em
 # dois segundos, e a última linha passava a ser a dela.
-"$ADB" shell am force-stop io.uxda.exemplo.sem >/dev/null 2>&1
+"$ADB" shell am force-stop io.uxea.exemplo.sem >/dev/null 2>&1
 "$ADB" shell am force-stop "$PACOTE" >/dev/null 2>&1
 
 # **Sem `run-as` este ensaio não parte nada**, e passa a dizer que a aplicação
@@ -34,7 +34,7 @@ usar() { for y in 718 328 448 566 844 970; do "$ADB" shell input tap 540 "$y" >/
 # variante de depuração, e numa variante de lançamento falha em silêncio.
 if ! "$ADB" shell run-as "$PACOTE" true >/dev/null 2>&1; then
   echo "  FALHA  o run-as não funciona: a variante instalada não é de depuração."
-  echo "         ./gradlew :exemplo:installComV1Debug -PuxdaChave=<chave>"
+  echo "         ./gradlew :exemplo:installComV1Debug -PuxeaChave=<chave>"
   exit 1
 fi
 
@@ -44,12 +44,12 @@ sleep 6
 viva && ok "aplicação a correr antes de partir seja o que for" || falha "a aplicação não arrancou"
 
 passo "1. o ficheiro da fila fica a meio de uma escrita"
-"$ADB" shell "run-as $PACOTE sh -c 'printf \"{lixo a meio\" >> files/uxda/fila.jsonl'" >/dev/null 2>&1
+"$ADB" shell "run-as $PACOTE sh -c 'printf \"{lixo a meio\" >> files/uxea/fila.jsonl'" >/dev/null 2>&1
 usar; sleep 2
 viva && ok "a aplicação sobreviveu a uma fila corrompida" || falha "a aplicação morreu com a fila corrompida"
 
 passo "2. o SDK deixa de poder escrever no disco"
-"$ADB" shell "run-as $PACOTE sh -c 'chmod 000 files/uxda'" >/dev/null 2>&1
+"$ADB" shell "run-as $PACOTE sh -c 'chmod 000 files/uxea'" >/dev/null 2>&1
 usar; usar; sleep 2
 viva && ok "a aplicação sobreviveu ao disco fechado" || falha "a aplicação morreu sem poder escrever"
 
@@ -68,7 +68,7 @@ else
   "$ADB" logcat -d | grep -A6 "FATAL EXCEPTION" | head -20
 fi
 
-ERROS=$("$ADB" logcat -d -s UxdaExemplo 2>/dev/null | grep '"errosInternos"' | tail -1 | grep -o '"errosInternos": *[0-9]*' | grep -o '[0-9]*$')
+ERROS=$("$ADB" logcat -d -s UxeaExemplo 2>/dev/null | grep '"errosInternos"' | tail -1 | grep -o '"errosInternos": *[0-9]*' | grep -o '[0-9]*$')
 # **Zero erros internos aqui é uma falha, e não um bom sinal.** Quer dizer que
 # nada do que se partiu chegou a ser tocado, e o ensaio estaria a dizer que a
 # aplicação sobreviveu a uma coisa que não lhe aconteceu.
@@ -79,7 +79,7 @@ else
 fi
 
 passo "5. repor o dispositivo"
-"$ADB" shell "run-as $PACOTE sh -c 'chmod 700 files/uxda'" >/dev/null 2>&1
+"$ADB" shell "run-as $PACOTE sh -c 'chmod 700 files/uxea'" >/dev/null 2>&1
 "$ADB" shell svc data enable >/dev/null 2>&1
 "$ADB" shell svc wifi enable >/dev/null 2>&1
 ok "disco e rede de volta"

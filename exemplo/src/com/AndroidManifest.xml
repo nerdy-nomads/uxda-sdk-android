@@ -3,7 +3,7 @@
     <application>
         <!-- A integração inteira do SDK, e não há mais nada.
              É o equivalente Android da etiqueta <script> de uma linha na web. -->
-        <meta-data android:name="io.uxda.chave" android:value="${uxdaChave}" />
-        <meta-data android:name="io.uxda.servidor" android:value="${uxdaServidor}" />
+        <meta-data android:name="io.uxea.chave" android:value="${uxeaChave}" />
+        <meta-data android:name="io.uxea.servidor" android:value="${uxeaServidor}" />
     </application>
 </manifest>

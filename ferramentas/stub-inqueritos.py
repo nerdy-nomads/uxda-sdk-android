@@ -68,7 +68,7 @@ INQUERITOS = {
             "contexto": {"tarefa": "pagar_uma_encomenda", "passo": "", "funcionalidade": "pagamento"},
         },
         {
-            # Pedido pela aplicação, com `Uxda.inquerito`: a amostragem a zero prova que o
+            # Pedido pela aplicação, com `Uxea.inquerito`: a amostragem a zero prova que o
             # pedido explícito salta o sorteio.
             "chave": "porque_desistiu",
             "versao": 1,
@@ -155,7 +155,7 @@ class Duplo(BaseHTTPRequestHandler):
 
     def do_GET(self):
         if self.path.startswith("/v1/config"):
-            print(f"[config] chave={self.headers.get('X-UXDA-Key')}", flush=True)
+            print(f"[config] chave={self.headers.get('X-UXEA-Key')}", flush=True)
             self.responder(200, {"sucesso": True, "dados": CONFIG})
             return
         self.responder(404, {"sucesso": False, "erro": "rota inexistente"})

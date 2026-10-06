@@ -9,8 +9,8 @@ set -uo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
 
 ADB="${ADB:-$HOME/Android/Sdk/platform-tools/adb}"
-PACOTE="${PACOTE:-io.uxda.exemplo.com}"
-CH="${CH:-http://localhost:8123/?user=void&password=${UXDA_CLICKHOUSE_PALAVRA:?defina UXDA_CLICKHOUSE_PALAVRA}&database=uxdata_dev}"
+PACOTE="${PACOTE:-io.uxea.exemplo.com}"
+CH="${CH:-http://localhost:8123/?user=void&password=${UXEA_CLICKHOUSE_PALAVRA:?defina UXEA_CLICKHOUSE_PALAVRA}&database=uxea_dev}"
 SAIDA="ferramentas/saida"
 mkdir -p "$SAIDA"
 
@@ -31,9 +31,9 @@ tocar_em() {
 
 printf '\n\033[1mcaptura granular, num emulador de gama baixa\033[0m\n'
 INICIO=$(date -u +'%Y-%m-%d %H:%M:%S')
-"$ADB" shell am force-stop io.uxda.exemplo.sem >/dev/null 2>&1
+"$ADB" shell am force-stop io.uxea.exemplo.sem >/dev/null 2>&1
 "$ADB" shell am force-stop "$PACOTE" >/dev/null 2>&1
-"$ADB" shell am start -n "$PACOTE/io.uxda.exemplo.LojaActivity" >/dev/null 2>&1
+"$ADB" shell am start -n "$PACOTE/io.uxea.exemplo.LojaActivity" >/dev/null 2>&1
 sleep 6
 
 # 1. Uma zona que parece acionável e não é.

@@ -23,8 +23,8 @@ cd "$(dirname "${BASH_SOURCE[0]}")/.."
 
 ADB="${ADB:-$HOME/Android/Sdk/platform-tools/adb}"
 MINUTOS="${1:-60}"
-COM=io.uxda.exemplo.com
-SEM=io.uxda.exemplo.sem
+COM=io.uxea.exemplo.com
+SEM=io.uxea.exemplo.sem
 SAIDA="ferramentas/saida"
 mkdir -p "$SAIDA"
 
@@ -82,7 +82,7 @@ while [ "$(date +%s)" -lt "$FIM" ]; do
 done
 
 passo "2. o que cada variante gastou"
-EVENTOS=$("$ADB" logcat -d -s UxdaExemplo 2>/dev/null | grep -o '"eventosEmitidos": *[0-9]*' | tail -1 | grep -o '[0-9]*$')
+EVENTOS=$("$ADB" logcat -d -s UxeaExemplo 2>/dev/null | grep -o '"eventosEmitidos": *[0-9]*' | tail -1 | grep -o '[0-9]*$')
 CPU_COM=$(cpu_de "$COM"); CPU_SEM=$(cpu_de "$SEM")
 "$ADB" shell dumpsys batterystats > "$SAIDA/batterystats.txt" 2>/dev/null
 UID_COM=$(uid_de "$COM"); UID_SEM=$(uid_de "$SEM")

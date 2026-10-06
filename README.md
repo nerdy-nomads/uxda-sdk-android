@@ -1,6 +1,6 @@
 # sdk-android
 
-> Peça do workspace **[ux-data-analysis](https://github.com/nerdy-nomads/ux-data-analysis)**, onde vive como
+> Peça do workspace **[ux-event-analytics](https://github.com/nerdy-nomads/ux-event-analytics)**, onde vive como
 > submódulo em `sdk/sdk-android`. O plano, o quadro e o documento de arquitetura estão lá.
 
 O SDK nativo para Android, com os mesmos eventos e o mesmo contrato do `sdk-js`.
@@ -8,7 +8,7 @@ O SDK nativo para Android, com os mesmos eventos e o mesmo contrato do `sdk-js`.
 A integração é **uma linha**, e não é código: é uma entrada no manifesto.
 
 ```xml
-<meta-data android:name="io.uxda.chave" android:value="uxda_pro_..." />
+<meta-data android:name="io.uxea.chave" android:value="uxea_pro_..." />
 ```
 
 O SDK arranca sozinho, por um `ContentProvider` que o sistema cria antes de a
@@ -26,7 +26,7 @@ O que garante a paridade não é a intenção, são três coisas verificadas:
 
 | O quê | Como se garante |
 |---|---|
-| Os nomes dos campos | O esquema canónico vem do `uxda-core` pelo `sync-schema.sh`, e um ensaio falha se um campo emitido não existir lá |
+| Os nomes dos campos | O esquema canónico vem do `uxea-core` pelo `sync-schema.sh`, e um ensaio falha se um campo emitido não existir lá |
 | Os tipos de evento | A lista dos dez do `RF-CAP-04` é a mesma constante, e o ensaio compara-a letra a letra com a do web |
 | As contas | O resumo do rótulo e a decisão de amostragem têm vetores fixos, tirados do `sdk-js` e do `hash/fnv` do Go |
 
@@ -40,7 +40,7 @@ O que garante a paridade não é a intenção, são três coisas verificadas:
 | `submissao` | evento `submit` | ação do teclado (Enviar, Seguinte, Concluído), encadeada sem tirar a da aplicação |
 | `erro` | evento `invalid` | `setError` visível num campo, que é o mecanismo da plataforma |
 | `recuo` | `popstate` | tecla de retroceder, e atividade a terminar com outra a retomar |
-| `erro_rede` | `fetch` embrulhado | intercetor de OkHttp opcional, ou `Uxda.erroDeRede` |
+| `erro_rede` | `fetch` embrulhado | intercetor de OkHttp opcional, ou `Uxea.erroDeRede` |
 
 E duas diferenças que não são de evento nenhum:
 
@@ -76,15 +76,15 @@ Nada disto é necessário. Tudo isto melhora a estabilidade da identidade:
 | `android:id="@+id/botao_pagar"` | Passa a ser o sinal mais forte, e sobrevive a qualquer mudança de esquema |
 | `Modifier.testTag("botao-pagar")` | O mesmo, em Compose |
 | `contentDescription` nos ícones | Dá rótulo a quem não tem texto, e serve o leitor de ecrã ao mesmo tempo |
-| `android:tag="uxda:destino=/checkout"` | Recupera o sinal do destino, que no Android não existe naturalmente |
-| `android:tag="uxda:mensagem=saldo_insuficiente"` | Dá **chave** a uma mensagem, e aí o texto dela nem sai do dispositivo |
+| `android:tag="uxea:destino=/checkout"` | Recupera o sinal do destino, que no Android não existe naturalmente |
+| `android:tag="uxea:mensagem=saldo_insuficiente"` | Dá **chave** a uma mensagem, e aí o texto dela nem sai do dispositivo |
 | `android:id="@+id/erro_saldo"` | O nome do recurso classifica a mensagem sozinho: `erro_`, `aviso_`, `sucesso_` |
 
 ## Só fala cifrado
 
 O SDK envia por HTTPS, e **recusa um endereço em `http://`** que não seja a própria máquina
 (`localhost`, `127.0.0.1`, `::1`, e `10.0.2.2`, que é a máquina vista do emulador Android):
-não arranca, não escreve nada no dispositivo, e `Uxda.diagnostico()["transporte"]` diz `"recusado"`. Um endereço mal
+não arranca, não escreve nada no dispositivo, e `Uxea.diagnostico()["transporte"]` diz `"recusado"`. Um endereço mal
 escrito na configuração não pode pôr o comportamento de ninguém a circular em claro
 (cartão 18.6, ADR 0050).
 
@@ -109,14 +109,14 @@ Corre no passo `Bateria de fuga de conteúdo` do CI (`--tests '*Fuga*'`).
 ## O consentimento, e o que a aplicação lhe passa (fase 18)
 
 ```xml
-<meta-data android:name="io.uxda.consentimento" android:value="exigido" />
+<meta-data android:name="io.uxea.consentimento" android:value="exigido" />
 ```
 
-Com a meta, o SDK não faz nada até a aplicação chamar `Uxda.consentimento(true)`: nem as
-preferências, nem a fila, nem um pedido. `Uxda.consentimento(false)` para já, apaga a fila
+Com a meta, o SDK não faz nada até a aplicação chamar `Uxea.consentimento(true)`: nem as
+preferências, nem a fila, nem um pedido. `Uxea.consentimento(false)` para já, apaga a fila
 e as preferências do SDK, e guarda só a recusa, que vale no arranque seguinte (ADR 0047).
 
-As propriedades do `Uxda.track(nome, extras)` (agora `Map<String, Any?>`; antes iam todas
+As propriedades do `Uxea.track(nome, extras)` (agora `Map<String, Any?>`; antes iam todas
 fora em silêncio) e a operação das mensagens passam por `Privacidade.kt`, com as mesmas
 regras do SDK web: chave fora do esquema não sai, texto sai mascarado, e só a lista da
 instituição levanta a máscara, nunca o chão. As listas do esquema chegam aqui geradas
@@ -136,9 +136,9 @@ mesmo tempo, e é por isso que vale a pena:
 
 ```kotlin
 // Uma etiqueta, e não muda nada no que a pessoa vê.
-aviso.tag = "uxda:mensagem=saldo_insuficiente"
+aviso.tag = "uxea:mensagem=saldo_insuficiente"
 // Ou, para o que o SDK não vê sozinho (um Toast, uma notificação):
-Uxda.mensagem("saldo_insuficiente", "erro")
+Uxea.mensagem("saldo_insuficiente", "erro")
 ```
 
 | Sem chave, só com texto | Com chave |
@@ -188,8 +188,8 @@ Os cartões `3.1` a `3.4` estão fechados.
 
 | Caminho | O que é |
 |---|---|
-| `uxda/src/main/kotlin/io/uxda/sdk/Uxda.kt` | A API pública, e o arranque. `track`, `identificar`, `ecra`, `erroDeRede`, `parar`, `diagnostico` |
-| `.../UxdaProvider.kt` | O `ContentProvider` que arranca o SDK antes da aplicação |
+| `uxea/src/main/kotlin/io/uxea/sdk/Uxea.kt` | A API pública, e o arranque. `track`, `identificar`, `ecra`, `erroDeRede`, `parar`, `diagnostico` |
+| `.../UxeaProvider.kt` | O `ContentProvider` que arranca o SDK antes da aplicação |
 | `.../captura/Captura.kt` | Os dez tipos do `RF-CAP-04`, e os onze pontos de entrada que correm no fio principal |
 | `.../captura/Fragmentos.kt` | Ecrãs feitos de fragmentos, com o `androidx.fragment` só em compilação |
 | `.../fila/` | A fila JSONL a acrescentar, o lote, o recuo e os limites de rede medida |
@@ -213,11 +213,11 @@ aparelho de gama alta esconde tudo o que se queria ver.
 | Sobrevivência de identidades entre duas versões | **100% (9 de 9)** | - |
 | Ensaios | 162 (2026-09-23; eram 53 na fase 3), incluindo fuga de conteúdo e injeção de falhas | - |
 
-**O SDK publica-se já encolhido pelo R8** (`uxda/proguard-rules.pro`). Os inquéritos da
+**O SDK publica-se já encolhido pelo R8** (`uxea/proguard-rules.pro`). Os inquéritos da
 fase 14 levaram o código de 187 para 305 KB de dex, o orçamento esteve vermelho no CI cinco
 dias sem ninguém o ver, e o 17.3 passou-o para 309 KB. O que pesava eram os nomes, os
 metadados do Kotlin e a depuração das classes internas: encolhida, a biblioteca fica em 163
-KB, com a API pública (`Uxda`, `UxdaProvider`, `UxdaOkHttp`, `Opcoes`, `Terminal`, `Tipos`,
+KB, com a API pública (`Uxea`, `UxeaProvider`, `UxeaOkHttp`, `Opcoes`, `Terminal`, `Tipos`,
 `VistaDoSdk`) exatamente como estava, e os números de linha nos traços. **Verificado no
 emulador com a variante de lançamento**: toques, campos, teclas, o erro de rede, o ecrã em
 Compose com a identidade dos elementos, e o número do cartão sem sair do dispositivo.
@@ -297,7 +297,7 @@ regras ([ADR 0034](../../docs/adr/0034-uma-resposta-e-anonima-ate-alguem-decidir
 gatilhos sobre os eventos que ele próprio emite: depois de concluir uma tarefa, depois de
 a abandonar (no arranque da sessão seguinte, e o estado sobrevive à morte do processo),
 depois de um erro, na primeira utilização neste dispositivo, ou por amostragem. Quem quiser
-pedir pelo código chama `Uxda.inquerito(chave)`, que salta o sorteio e mais nada.
+pedir pelo código chama `Uxea.inquerito(chave)`, que salta o sorteio e mais nada.
 
 | Peça | O que faz |
 |---|---|
@@ -331,7 +331,7 @@ cartão. O registo das duas passagens, e os dois defeitos que a primeira apanhou
 ## Como correr
 
 ```bash
-./gradlew :uxda:testDebugUnitTest --max-workers=3   # 160 ensaios, incluindo fuga e injeção de falhas
+./gradlew :uxea:testDebugUnitTest --max-workers=3   # 160 ensaios, incluindo fuga e injeção de falhas
 ./ferramentas/orcamento.sh             # o acréscimo ao tamanho da aplicação
 ./ferramentas/ensaio-dispositivo.sh    # morte do processo e dia sem rede, num telemóvel
 ./ferramentas/ensaio-bateria.sh 60     # bateria e CPU, com e sem SDK, no mesmo aparelho
@@ -342,13 +342,13 @@ o que torna honesta a medição do acréscimo de tamanho e a de bateria: a difer
 que sobra é o SDK, e não a sorte.
 
 ```bash
-./gradlew :exemplo:installComDebug -PuxdaChave=uxda_des_... -PuxdaServidor=http://10.0.2.2:8710
+./gradlew :exemplo:installComDebug -PuxeaChave=uxea_des_... -PuxeaServidor=http://10.0.2.2:8710
 ```
 
 ## Ler antes de mexer
 
-[ADR 0018](https://github.com/nerdy-nomads/ux-data-analysis/blob/master/docs/adr/0018-o-sdk-web-uma-linha-e-uma-fila.md),
+[ADR 0018](https://github.com/nerdy-nomads/ux-event-analytics/blob/master/docs/adr/0018-o-sdk-web-uma-linha-e-uma-fila.md),
 que fixa o desenho dos dois SDK, e o
-[ADR 0003](https://github.com/nerdy-nomads/ux-data-analysis/blob/master/docs/adr/0003-identificacao-estavel-de-elementos.md),
+[ADR 0003](https://github.com/nerdy-nomads/ux-event-analytics/blob/master/docs/adr/0003-identificacao-estavel-de-elementos.md),
 que fixa a cadeia de sinais e a regra que manda sobre todas: **quando não se
 reconhece, o elemento aparece como novo, e nunca como outro.**

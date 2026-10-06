@@ -15,9 +15,9 @@ set -uo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")"
 
 ADB="${ADB:-$HOME/Android/Sdk/platform-tools/adb}"
-PACOTE="${PACOTE:-io.uxda.exemplo.com}"
-ATIVIDADE="$PACOTE/io.uxda.exemplo.LojaActivity"
-CH="${CH:-http://localhost:8123/?user=void&password=${UXDA_CLICKHOUSE_PALAVRA:?defina UXDA_CLICKHOUSE_PALAVRA}&database=uxdata_dev}"
+PACOTE="${PACOTE:-io.uxea.exemplo.com}"
+ATIVIDADE="$PACOTE/io.uxea.exemplo.LojaActivity"
+CH="${CH:-http://localhost:8123/?user=void&password=${UXEA_CLICKHOUSE_PALAVRA:?defina UXEA_CLICKHOUSE_PALAVRA}&database=uxea_dev}"
 
 passo() { printf '\n\033[1m%s\033[0m\n' "$*"; }
 ok()    { printf '  \033[32mok\033[0m     %s\n' "$*"; }
@@ -40,10 +40,10 @@ tocar() { "$ADB" shell input tap "$1" "$2" >/dev/null 2>&1; sleep 1; }
 # dava isso por bom.
 "$ADB" shell run-as "$PACOTE" true >/dev/null 2>&1 || {
   echo "  FALHA  o run-as não funciona: a variante instalada não é de depuração."
-  echo "         ./gradlew :exemplo:installComV1Debug -PuxdaChave=<chave>"
+  echo "         ./gradlew :exemplo:installComV1Debug -PuxeaChave=<chave>"
   exit 1
 }
-"$ADB" shell am force-stop io.uxda.exemplo.sem >/dev/null 2>&1
+"$ADB" shell am force-stop io.uxea.exemplo.sem >/dev/null 2>&1
 
 # ------------------------------------------------------------------ ensaio 1
 passo "1. o sistema mata a aplicação a meio de uma tentativa"
@@ -64,7 +64,7 @@ tocar 540 448
 ok "aplicação abatida com force-stop, sem aviso nenhum"
 sleep 2
 
-FILA=$("$ADB" shell run-as "$PACOTE" cat files/uxda/fila.jsonl 2>/dev/null | wc -l)
+FILA=$("$ADB" shell run-as "$PACOTE" cat files/uxea/fila.jsonl 2>/dev/null | wc -l)
 if [ "${FILA:-0}" -gt 0 ]; then
   ok "ficaram $FILA eventos escritos em disco, que o processo já não tem como enviar"
 else
@@ -94,7 +94,7 @@ tocar 540 718; tocar 540 970; tocar 540 328
 tocar 540 448
 sleep 4
 
-FILA2=$("$ADB" shell run-as "$PACOTE" cat files/uxda/fila.jsonl 2>/dev/null | wc -l)
+FILA2=$("$ADB" shell run-as "$PACOTE" cat files/uxea/fila.jsonl 2>/dev/null | wc -l)
 if [ "${FILA2:-0}" -gt 0 ]; then
   ok "$FILA2 eventos em fila, com a rede em baixo"
 else
@@ -114,9 +114,17 @@ AMANHA=$(date -u -d '+1 day' +'%m%d%H%M%Y.%S' 2>/dev/null || date -u -v+1d +'%m%
 ok "rede de volta"
 "$ADB" shell am force-stop "$PACOTE" >/dev/null 2>&1
 "$ADB" shell am start -n "$ATIVIDADE" >/dev/null 2>&1
-sleep 15
 
-RESTA=$("$ADB" shell run-as "$PACOTE" cat files/uxda/fila.jsonl 2>/dev/null | wc -l)
+# **Espera pela fila, e não por um tempo fixo.** A rede de um emulador demora a voltar
+# quando a máquina está carregada, e com quinze segundos fixos o ensaio falhava com a
+# fila a esvaziar-se logo a seguir. O critério é o mesmo (a fila esvazia-se sozinha
+# depois de a rede voltar), com um prazo de noventa segundos.
+RESTA=1
+for _ in $(seq 1 45); do
+  sleep 2
+  RESTA=$("$ADB" shell run-as "$PACOTE" cat files/uxea/fila.jsonl 2>/dev/null | wc -l)
+  [ "${RESTA:-1}" -eq 0 ] && break
+done
 DEPOIS2=$(contar "$INICIO2")
 if [ "${RESTA:-1}" -eq 0 ]; then
   ok "a fila esvaziou-se sozinha: $DEPOIS2 eventos entregues depois do dia sem rede"

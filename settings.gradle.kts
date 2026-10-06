@@ -1,6 +1,6 @@
-// O SDK Android da plataforma UX Data Analysis.
+// O SDK Android da plataforma UX Event Analytics.
 //
-// Dois módulos, e a fronteira entre eles é a que interessa: `uxda` é o que vai
+// Dois módulos, e a fronteira entre eles é a que interessa: `uxea` é o que vai
 // dentro da aplicação de quem nos instala, e `exemplo` é a aplicação de ensaio
 // que existe para se ver o SDK a correr num telemóvel a sério.
 pluginManagement {
@@ -19,5 +19,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "uxda-sdk-android"
-include(":uxda", ":exemplo")
+rootProject.name = "uxea-sdk-android"
+include(":uxea", ":exemplo")

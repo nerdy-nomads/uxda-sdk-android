@@ -25,11 +25,11 @@ echo
 
 # As variantes têm duas dimensões: com/sem SDK, e a versão do esquema. A
 # medição do acréscimo compara as duas da **mesma** versão do esquema.
-$GRADLE :exemplo:assembleComV1Release :exemplo:assembleSemV1Release :uxda:assembleRelease -q || exit 1
+$GRADLE :exemplo:assembleComV1Release :exemplo:assembleSemV1Release :uxea:assembleRelease -q || exit 1
 
 COM=$(find exemplo/build/outputs/apk/comV1/release -name "*.apk" | head -1)
 SEM=$(find exemplo/build/outputs/apk/semV1/release -name "*.apk" | head -1)
-AAR=$(find uxda/build/outputs/aar -name "*.aar" | head -1)
+AAR=$(find uxea/build/outputs/aar -name "*.aar" | head -1)
 
 [ -f "$COM" ] && [ -f "$SEM" ] || { echo "  FALHA  faltam os APK das duas variantes"; exit 1; }
 

@@ -13,7 +13,7 @@
 #  - **um projeto só para esta medição.** A taxa compara a primeira versão vista com
 #    a última, e num projeto já usado para outra coisa os elementos descobertos
 #    depois contam como não sobreviventes. Cria-se a chave com
-#    `go run ./tools/semear -projeto <uuid> -so-chave`, no uxda-ingest;
+#    `go run ./tools/semear -projeto <uuid> -so-chave`, no uxea-ingest;
 #  - **os toques vão pela árvore de interface e não por coordenadas.** A segunda
 #    versão mudou os campos de sítio de propósito, e um toque em coordenadas fixas
 #    tocaria noutra coisa, medindo o guião em vez do SDK.
@@ -21,10 +21,10 @@ set -uo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
 
 ADB="${ADB:-$HOME/Android/Sdk/platform-tools/adb}"
-CHAVE="${1:-${UXDA_CHAVE:-}}"
-SERVIDOR="${UXDA_SERVIDOR:-http://10.0.2.2:8710}"
-INGESTAO="${UXDA_INGESTAO:-http://localhost:8710}"
-PACOTE=io.uxda.exemplo.com
+CHAVE="${1:-${UXEA_CHAVE:-}}"
+SERVIDOR="${UXEA_SERVIDOR:-http://10.0.2.2:8710}"
+INGESTAO="${UXEA_INGESTAO:-http://localhost:8710}"
+PACOTE=io.uxea.exemplo.com
 SAIDA="ferramentas/saida"
 mkdir -p "$SAIDA"
 
@@ -57,7 +57,7 @@ tocar_em() {
 # pelo ecrã em Compose, que é a outra árvore de interface.
 tarefa() {
   "$ADB" shell am force-stop "$PACOTE" >/dev/null 2>&1
-  "$ADB" shell am start -n "$PACOTE/io.uxda.exemplo.LojaActivity" >/dev/null 2>&1
+  "$ADB" shell am start -n "$PACOTE/io.uxea.exemplo.LojaActivity" >/dev/null 2>&1
   sleep 6
   tocar_em "Nome no cartão"      && "$ADB" shell input text "Ana" >/dev/null 2>&1
   sleep 1
@@ -82,18 +82,18 @@ tarefa() {
 }
 
 saude() {
-  curl -s "$INGESTAO/v1/elementos/saude?de=1.4.0-com-sdk&para=1.4.0-com-sdk-v2" -H "X-UXDA-Key: $CHAVE"
+  curl -s "$INGESTAO/v1/elementos/saude?de=1.4.0-com-sdk&para=1.4.0-com-sdk-v2" -H "X-UXEA-Key: $CHAVE"
 }
 
 passo "1. a primeira versão"
-./gradlew :exemplo:installComV1Debug -PuxdaChave="$CHAVE" -PuxdaServidor="$SERVIDOR" -q || { falha "não compilou a v1"; exit 1; }
+./gradlew :exemplo:installComV1Debug -PuxeaChave="$CHAVE" -PuxeaServidor="$SERVIDOR" -q || { falha "não compilou a v1"; exit 1; }
 ok "v1 instalada"
 tarefa
 ok "tarefa feita na v1"
 
 passo "2. a segunda versão, com o esquema mudado"
 "$ADB" uninstall "$PACOTE" >/dev/null 2>&1
-./gradlew :exemplo:installComV2Debug -PuxdaChave="$CHAVE" -PuxdaServidor="$SERVIDOR" -q || { falha "não compilou a v2"; exit 1; }
+./gradlew :exemplo:installComV2Debug -PuxeaChave="$CHAVE" -PuxeaServidor="$SERVIDOR" -q || { falha "não compilou a v2"; exit 1; }
 ok "v2 instalada"
 tarefa
 ok "a mesma tarefa feita na v2"

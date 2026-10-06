@@ -3,7 +3,7 @@
 
 stub-inqueritos à escuta em 0.0.0.0:8791 (do emulador: http://10.0.2.2:8791)
 [config] chave=None
-[config] chave=uxda_des_ensaio_inqueritos
+[config] chave=uxea_des_ensaio_inqueritos
 [eventos] lote de 2 (total 2 em 1 lotes)
 [eventos] lote de 3 (total 5 em 2 lotes)
 [eventos] lote de 4 (total 9 em 3 lotes)
@@ -44,7 +44,7 @@ stub-inqueritos à escuta em 0.0.0.0:8791 (do emulador: http://10.0.2.2:8791)
   "user_id": ""
 }
 [resposta] aceite: comentário mascarado no dispositivo = 'O cartao {id} foi recusado, escrevam para {email}'
-[config] chave=uxda_des_ensaio_inqueritos
+[config] chave=uxea_des_ensaio_inqueritos
 [eventos] lote de 2 (total 15 em 8 lotes)
 [elegibilidade] {"inquerito":"motivo_da_demora","anonymous_id":"0d9b3cd8-250e-4e19-a9a6-ad3a6761d071","user_id":""}  ->  mostrar=true pedido_id=da992291-f879-4ebb-a92a-c3c3aa64fada
 [eventos] lote de 3 (total 18 em 9 lotes)
@@ -89,7 +89,7 @@ stub-inqueritos à escuta em 0.0.0.0:8791 (do emulador: http://10.0.2.2:8791)
 
 # Segunda passagem, contra a ingestão verdadeira (2026-09-14, 07:12 a 07:14)
 # Aduela_Movel sem janela, exemplo comV1Debug instalado com a chave do parque de ensaio e
-# -PuxdaServidor=http://10.0.2.2:8710, depois de `pm clear` para começar uma sessão nova.
+# -PuxeaServidor=http://10.0.2.2:8710, depois de `pm clear` para começar uma sessão nova.
 #
 # Dois defeitos saíram da primeira passagem e foram corrigidos antes desta:
 #   - o contexto levava `passo: "/loja"` (o ecrã) quando a regra não fixava passo, e a

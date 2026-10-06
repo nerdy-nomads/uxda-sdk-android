@@ -16,7 +16,7 @@ set -uo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
 
 ADB="${ADB:-$HOME/Android/Sdk/platform-tools/adb}"
-PACOTE="${PACOTE:-io.uxda.exemplo.com}"
+PACOTE="${PACOTE:-io.uxea.exemplo.com}"
 SAIDA="ferramentas/saida"
 mkdir -p "$SAIDA"
 
@@ -34,9 +34,9 @@ tocar_em() {
 "$ADB" get-state >/dev/null 2>&1 || { echo "sem dispositivo ligado"; exit 1; }
 
 printf '\n\033[1ma mesma tarefa da loja de ensaio da web, no telemóvel\033[0m\n'
-"$ADB" shell am force-stop io.uxda.exemplo.sem >/dev/null 2>&1
+"$ADB" shell am force-stop io.uxea.exemplo.sem >/dev/null 2>&1
 "$ADB" shell am force-stop "$PACOTE" >/dev/null 2>&1
-"$ADB" shell am start -n "$PACOTE/io.uxda.exemplo.LojaActivity" >/dev/null 2>&1
+"$ADB" shell am start -n "$PACOTE/io.uxea.exemplo.LojaActivity" >/dev/null 2>&1
 sleep 6
 ok "ecrã da loja"
 

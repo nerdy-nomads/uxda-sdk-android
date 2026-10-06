@@ -16,8 +16,8 @@ set -uo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
 
 ADB="${ADB:-$HOME/Android/Sdk/platform-tools/adb}"
-PACOTE="${PACOTE:-io.uxda.exemplo.com}"
-CH="${CH:-http://localhost:8123/?user=void&password=${UXDA_CLICKHOUSE_PALAVRA:?defina UXDA_CLICKHOUSE_PALAVRA}&database=uxdata_dev}"
+PACOTE="${PACOTE:-io.uxea.exemplo.com}"
+CH="${CH:-http://localhost:8123/?user=void&password=${UXEA_CLICKHOUSE_PALAVRA:?defina UXEA_CLICKHOUSE_PALAVRA}&database=uxea_dev}"
 SAIDA="ferramentas/saida"
 mkdir -p "$SAIDA"
 
@@ -53,7 +53,7 @@ INICIO=$(date -u +'%Y-%m-%d %H:%M:%S')
 
 passo "1. escrever os marcadores em todos os campos, nas duas árvores"
 "$ADB" shell am force-stop "$PACOTE" >/dev/null 2>&1
-"$ADB" shell am start -n "$PACOTE/io.uxda.exemplo.LojaActivity" >/dev/null 2>&1
+"$ADB" shell am start -n "$PACOTE/io.uxea.exemplo.LojaActivity" >/dev/null 2>&1
 sleep 6
 
 tocar_em "Nome no cartão"   && "$ADB" shell input text "SEGREDOxNOME" >/dev/null 2>&1

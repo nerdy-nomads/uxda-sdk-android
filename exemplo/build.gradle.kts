@@ -5,11 +5,11 @@ plugins {
 }
 
 android {
-    namespace = "io.uxda.exemplo"
+    namespace = "io.uxea.exemplo"
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "io.uxda.exemplo"
+        applicationId = "io.uxea.exemplo"
         minSdk = 24
         targetSdk = 36
         versionCode = 1
@@ -46,8 +46,8 @@ android {
             versionNameSuffix = "-com-sdk"
             // A chave entra na compilação e **não fica no repositório**: uma chave
             // de ingestão versionada é uma chave que se usa por engano.
-            manifestPlaceholders["uxdaChave"] = (project.findProperty("uxdaChave") as String?) ?: "uxda_des_por_definir"
-            manifestPlaceholders["uxdaServidor"] = (project.findProperty("uxdaServidor") as String?) ?: "http://10.0.2.2:8710"
+            manifestPlaceholders["uxeaChave"] = (project.findProperty("uxeaChave") as String?) ?: "uxea_des_por_definir"
+            manifestPlaceholders["uxeaServidor"] = (project.findProperty("uxeaServidor") as String?) ?: "http://10.0.2.2:8710"
         }
         create("sem") {
             dimension = "sdk"
@@ -78,7 +78,7 @@ android {
 }
 
 dependencies {
-    "comImplementation"(project(":uxda"))
+    "comImplementation"(project(":uxea"))
 
     implementation("androidx.appcompat:appcompat:1.7.0")
     implementation("com.google.android.material:material:1.12.0")
