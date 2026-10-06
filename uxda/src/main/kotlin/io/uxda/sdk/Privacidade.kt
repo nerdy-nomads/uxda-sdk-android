@@ -50,4 +50,23 @@ internal object Privacidade {
 
     /** Os ficheiros de preferências que o SDK escreve, e que a recusa apaga. */
     val PREFS_DO_SDK = listOf("uxda", "uxda.inqueritos")
+
+    /**
+     * Como os eventos vão viajar até ao servidor (cartão 18.6, `RNF-PRI-09`, ADR 0050).
+     *
+     * `https` é cifrado. HTTP só se aceita para a própria máquina (`localhost`, e o
+     * anfitrião visto do emulador, `10.0.2.2`), que é o ensaio local. Qualquer outro
+     * endereço em claro é **recusado**, e o SDK não arranca.
+     */
+    fun transporteDe(servidor: String): String {
+        val u = try { java.net.URI(servidor) } catch (_: Throwable) { return "recusado" }
+        return when (u.scheme?.lowercase()) {
+            "https" -> if (u.host.isNullOrEmpty()) "recusado" else "cifrado"
+            "http" -> {
+                val h = (u.host ?: "").trim('[', ']')
+                if (h == "localhost" || h.endsWith(".localhost") || h == "127.0.0.1" || h == "::1" || h == "10.0.2.2") "local" else "recusado"
+            }
+            else -> "recusado"
+        }
+    }
 }

@@ -139,6 +139,10 @@ object Uxda {
      * arranque seguinte não começar a medir antes de a aplicação voltar a dizer.
      * Não há configuração do servidor que o contorne.
      */
+    /** `cifrado`, `local` (HTTP para a própria máquina) ou `recusado` (o SDK não arrancou). Cartão 18.6. */
+    @Volatile
+    private var transporteEstado = "cifrado"
+
     @JvmStatic
     fun consentimento(dado: Boolean) = Seguranca.executar("uxda.consentimento") {
         val ctx: Context? = app ?: pendente?.first
@@ -175,6 +179,10 @@ object Uxda {
 
     private fun arrancarCaptura(aplicacao: Application, op: Opcoes) {
         if (ligado) return
+        // Um endereço em claro para fora da máquina não arranca nada, com ou sem
+        // consentimento (cartão 18.6): nem identificador, nem fila, nem pedido.
+        transporteEstado = Privacidade.transporteDe(op.servidor)
+        if (transporteEstado == "recusado") return
         ligado = true
         app = aplicacao
         opcoes = op
@@ -479,6 +487,7 @@ object Uxda {
             "versao" to VERSAO,
             "ligado" to ligado,
             "consentimento" to consentimentoEstado,
+            "transporte" to transporteEstado,
             "propriedadesDescartadas" to descartadas.toList(),
             "amostrado" to amostrado,
             "configuracao" to mapOf(

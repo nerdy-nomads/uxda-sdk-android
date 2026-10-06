@@ -132,4 +132,30 @@ class PrivacidadeTest {
             prefs(Privacidade.PREFS_CONSENTIMENTO).edit().clear().commit()
         }
     }
+
+    @Test
+    fun `o SDK so fala cifrado, e HTTP so para a propria maquina`() {
+        assertEquals("cifrado", Privacidade.transporteDe("https://ingest.uxda.io"))
+        assertEquals("local", Privacidade.transporteDe("http://10.0.2.2:8710"))
+        assertEquals("local", Privacidade.transporteDe("http://127.0.0.1:8710"))
+        assertEquals("local", Privacidade.transporteDe("http://localhost:8710"))
+        assertEquals("recusado", Privacidade.transporteDe("http://ingest.uxda.io"))
+        assertEquals("recusado", Privacidade.transporteDe("http://192.168.0.180:8710"))
+        assertEquals("recusado", Privacidade.transporteDe("ftp://ingest.uxda.io"))
+        assertEquals("recusado", Privacidade.transporteDe("isto não é um endereço"))
+
+        // De ponta a ponta: com um endereço em claro, o SDK não arranca, não escreve
+        // identificador nenhum e não cria a fila.
+        val app = ApplicationProvider.getApplicationContext<Application>()
+        try {
+            Uxda.iniciar(app, Opcoes(chave = "uxda_des_teste", servidor = "http://ingest.exemplo.ao", automatico = false))
+            Uxda.track("compra")
+            assertEquals(false, Uxda.diagnostico()["ligado"])
+            assertEquals("recusado", Uxda.diagnostico()["transporte"])
+            assertTrue("escreveu identificadores sem poder enviar", app.getSharedPreferences("uxda", Context.MODE_PRIVATE).all.isEmpty())
+            assertFalse("criou a fila sem poder enviar", File(app.filesDir, "uxda").exists())
+        } finally {
+            Uxda.parar()
+        }
+    }
 }

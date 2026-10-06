@@ -80,6 +80,14 @@ Nada disto é necessário. Tudo isto melhora a estabilidade da identidade:
 | `android:tag="uxda:mensagem=saldo_insuficiente"` | Dá **chave** a uma mensagem, e aí o texto dela nem sai do dispositivo |
 | `android:id="@+id/erro_saldo"` | O nome do recurso classifica a mensagem sozinho: `erro_`, `aviso_`, `sucesso_` |
 
+## Só fala cifrado
+
+O SDK envia por HTTPS, e **recusa um endereço em `http://`** que não seja a própria máquina
+(`localhost`, `127.0.0.1`, `::1`, e `10.0.2.2`, que é a máquina vista do emulador Android):
+não arranca, não escreve nada no dispositivo, e `Uxda.diagnostico()["transporte"]` diz `"recusado"`. Um endereço mal
+escrito na configuração não pode pôr o comportamento de ninguém a circular em claro
+(cartão 18.6, ADR 0050).
+
 ## O que capta, campo a campo
 
 [`CAMPOS.md`](CAMPOS.md) lista cada campo e cada propriedade que este SDK envia, com a
