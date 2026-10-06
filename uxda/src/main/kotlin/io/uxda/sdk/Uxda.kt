@@ -10,6 +10,7 @@ import android.os.PowerManager
 import io.uxda.sdk.captura.Captura
 import io.uxda.sdk.fila.Armazem
 import io.uxda.sdk.fila.Fila
+import io.uxda.sdk.identidade.Mascara
 import io.uxda.sdk.fila.Transporte
 import io.uxda.sdk.identidade.Identidade
 import io.uxda.sdk.inquerito.Inqueritos
@@ -92,10 +93,85 @@ object Uxda {
     private fun agoraNoFio(): Long = android.os.Debug.threadCpuTimeNanos()
     private var ligado = false
 
-    /** Arranque manual, para quem prefere decidir o momento. */
+    /**
+     * O estado do consentimento (cartão 18.1): `implicito`, `pendente` (exigido e por
+     * dar: nada corre), `dado` ou `recusado`.
+     */
+    @Volatile
+    private var consentimentoEstado = "implicito"
+
+    /** O arranque que espera pelo consentimento, ou que a recusa parou. */
+    private var pendente: Pair<Application, Opcoes>? = null
+    private val descartadas = java.util.Collections.synchronizedSet(LinkedHashSet<String>())
+
+    private fun recusaGuardada(ctx: Context): Boolean =
+        ctx.getSharedPreferences(Privacidade.PREFS_CONSENTIMENTO, Context.MODE_PRIVATE).getString("estado", null) == "recusado"
+
+    /**
+     * Arranque manual, para quem prefere decidir o momento.
+     *
+     * **Por trás do consentimento** (cartão 18.1, `RNF-PRI-12`, ADR 0047): com
+     * `consentimento = "exigido"` nada arranca até `consentimento(true)`, e em
+     * qualquer modo nada arranca depois de `consentimento(false)`. Sem captura, o
+     * SDK não toca no dispositivo: nem preferências, nem a fila, nem um pedido.
+     */
     @JvmStatic
     fun iniciar(aplicacao: Application, op: Opcoes) = Seguranca.executar("uxda.iniciar") {
         if (ligado) return@executar
+        consentimentoEstado = when {
+            recusaGuardada(aplicacao) -> "recusado"
+            consentimentoEstado == "dado" -> "dado"
+            op.consentimento == "exigido" -> "pendente"
+            else -> "implicito"
+        }
+        if (consentimentoEstado == "pendente" || consentimentoEstado == "recusado") {
+            pendente = aplicacao to op
+            return@executar
+        }
+        arrancarCaptura(aplicacao, op)
+    }
+
+    /**
+     * O sinal de consentimento da pessoa, transmitido pela aplicação (cartão 18.1).
+     *
+     * `true` arranca a captura, se estava à espera. `false` para tudo **já**, apaga a
+     * fila e os identificadores deste dispositivo, e guarda só a recusa, para o
+     * arranque seguinte não começar a medir antes de a aplicação voltar a dizer.
+     * Não há configuração do servidor que o contorne.
+     */
+    @JvmStatic
+    fun consentimento(dado: Boolean) = Seguranca.executar("uxda.consentimento") {
+        val ctx: Context? = app ?: pendente?.first
+        if (dado) {
+            ctx?.getSharedPreferences(Privacidade.PREFS_CONSENTIMENTO, Context.MODE_PRIVATE)?.edit()?.remove("estado")?.commit()
+            val op = opcoes ?: pendente?.second
+            consentimentoEstado = if (op?.consentimento == "implicito") "implicito" else "dado"
+            pendente?.let { (a, o) ->
+                pendente = null
+                arrancarCaptura(a, o)
+            }
+            return@executar
+        }
+        consentimentoEstado = "recusado"
+        if (ligado) {
+            if (::armazem.isInitialized) armazem.esvaziar()
+            val a = app
+            val o = opcoes
+            parar()
+            if (a != null && o != null) pendente = a to o
+        }
+        if (ctx != null) {
+            for (nome in Privacidade.PREFS_DO_SDK) {
+                ctx.getSharedPreferences(nome, Context.MODE_PRIVATE).edit().clear().commit()
+                ctx.deleteSharedPreferences(nome)
+            }
+            java.io.File(ctx.filesDir, "uxda").deleteRecursively()
+            ctx.getSharedPreferences(Privacidade.PREFS_CONSENTIMENTO, Context.MODE_PRIVATE).edit().putString("estado", "recusado").commit()
+        }
+    }
+
+    private fun arrancarCaptura(aplicacao: Application, op: Opcoes) {
+        if (ligado) return
         ligado = true
         app = aplicacao
         opcoes = op
@@ -179,18 +255,25 @@ object Uxda {
         val chave = meta.getString("io.uxda.chave") ?: return@executar
         val servidor = meta.getString("io.uxda.servidor") ?: "https://ingest.uxda.io"
         val automatico = meta.getBoolean("io.uxda.automatico", true)
+        val consentimento = if (meta.getString("io.uxda.consentimento") == "exigido") "exigido" else "implicito"
         val versao = Seguranca.protegido("uxda.versaoApp", null as String?) {
             app.packageManager.getPackageInfo(app.packageName, 0).versionName
         }
-        iniciar(app, Opcoes(chave = chave, servidor = servidor, versaoApp = versao, automatico = automatico))
+        iniciar(app, Opcoes(chave = chave, servidor = servidor, versaoApp = versao, automatico = automatico, consentimento = consentimento))
     }
 
     /* ------------------------------------------------------- API pública */
 
     /** Marcação manual, para o que a captura automática não alcança (RF-CAP-08). */
     @JvmStatic
-    fun track(nome: String, extras: Map<String, String> = emptyMap()) = Seguranca.executar("uxda.track") {
-        emitirEvento(Tipos.PERSONALIZADO, null, null, extras + mapOf("message_key" to nome.take(256)))
+    fun track(nome: String, extras: Map<String, Any?> = emptyMap()) = Seguranca.executar("uxda.track") {
+        // As propriedades passam pelo mascaramento por omissão (cartão 18.1): uma
+        // chave que o esquema não conhece fica de fora e conta-se, e um valor de
+        // texto sai mascarado. Antes disto, o Android deitava-as todas fora.
+        val f = Privacidade.propriedadesDoCliente(extras, configuracao.propriedadesExpostas)
+        for (d in f.descartadas) if (descartadas.size < 50) descartadas.add(d)
+        emitirEvento(Tipos.PERSONALIZADO, null, null, mapOf("message_key" to Mascara.chao(nome).take(256)),
+            f.propriedades.takeIf { it.isNotEmpty() })
     }
 
     /** Declara o ecrã, para navegação que não muda de atividade (Compose, abas). */
@@ -202,7 +285,7 @@ object Uxda {
      */
     @JvmStatic
     fun passo(nome: String) = Seguranca.executar("uxda.passo") {
-        captura?.progressao?.passo(nome.take(64))
+        captura?.progressao?.passo(Mascara.chao(nome).take(64))
     }
 
     /**
@@ -242,7 +325,7 @@ object Uxda {
 
     @JvmStatic
     fun ecra(nome: String) = Seguranca.executar("uxda.ecra") {
-        ecraAtual = nome.take(256)
+        ecraAtual = Mascara.chao(nome).take(256)
         emitirEvento(Tipos.ECRA, null, null, emptyMap())
     }
 
@@ -294,7 +377,9 @@ object Uxda {
     @JvmStatic
     @JvmOverloads
     fun mensagem(chave: String, tipo: String = "info", operacao: String? = null) = Seguranca.executar("uxda.mensagem") {
-        captura?.mensagens?.declarar(chave.take(256), tipo, operacao)
+        // A operação é texto da instituição, e sai mascarada como o resto (18.1).
+        captura?.mensagens?.declarar(Mascara.chao(chave).take(256), tipo,
+            operacao?.let { Privacidade.textoDoCliente(it, "operacao", configuracao.propriedadesExpostas) })
     }
 
     /**
@@ -310,9 +395,9 @@ object Uxda {
     fun erroTecnico(chave: String, operacao: String? = null, codigoHttp: Int = 0) = Seguranca.executar("uxda.erroTecnico") {
         val props = HashMap<String, Any>()
         props["classe_erro"] = "sistema"
-        operacao?.let { props["operacao"] = it.take(32) }
+        operacao?.let { props["operacao"] = Privacidade.textoDoCliente(it, "operacao", configuracao.propriedadesExpostas).take(32) }
         if (codigoHttp > 0) props["codigo_http"] = codigoHttp
-        captura?.mensagens?.tecnico(chave.take(256), props)
+        captura?.mensagens?.tecnico(Mascara.chao(chave).take(256), props)
     }
 
     /**
@@ -390,6 +475,8 @@ object Uxda {
         mapOf(
             "versao" to VERSAO,
             "ligado" to ligado,
+            "consentimento" to consentimentoEstado,
+            "propriedadesDescartadas" to descartadas.toList(),
             "amostrado" to amostrado,
             "configuracao" to mapOf(
                 "amostragem" to configuracao.amostragem,

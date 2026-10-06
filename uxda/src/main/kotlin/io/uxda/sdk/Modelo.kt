@@ -157,6 +157,13 @@ data class Opcoes(
     val servidor: String = "https://ingest.uxda.io",
     val versaoApp: String? = null,
     val automatico: Boolean = true,
+    /**
+     * O consentimento (cartão 18.1, ADR 0047). Com `"exigido"`, o SDK **não faz
+     * nada** (não escreve no dispositivo, não pede a configuração, não ouve nada)
+     * até a aplicação chamar `Uxda.consentimento(true)`. Por omissão é
+     * `"implicito"`, e a pessoa pode recusar na mesma com `consentimento(false)`.
+     */
+    val consentimento: String = "implicito",
 )
 
 /** A configuração que muda sem publicar uma versão nova (RF-CAP-09 e RF-CAP-10). */
@@ -195,6 +202,11 @@ data class Configuracao(
      * omissão**, e sem eles o SDK não pergunta nada a ninguém.
      */
     val inqueritos: io.uxda.sdk.inquerito.ConfigInqueritos = io.uxda.sdk.inquerito.ConfigInqueritos.VAZIA,
+    /**
+     * As propriedades da instituição cujo valor sai sem a máscara das mensagens
+     * (cartão 18.1). Vazia por omissão, com o mesmo chão das mensagens expostas.
+     */
+    val propriedadesExpostas: List<String> = emptyList(),
 ) {
     /**
      * O que cada nível deixa passar. ADR 0010, RF-GRA-26, e a mesma lista do SDK
@@ -254,12 +266,16 @@ data class Configuracao(
             val detalhado = o.optDouble("amostragem_detalhado", 0.0).let {
                 if (it.isNaN()) 0.0 else it.coerceIn(0.0, 1.0)
             }
-            val expostas = mutableListOf<String>()
-            o.optJSONArray("mensagens_expostas")?.let { a ->
-                for (i in 0 until a.length()) {
-                    (a.opt(i) as? String)?.takeIf { it.isNotEmpty() }?.let(expostas::add)
-                }
+            fun textos(a: org.json.JSONArray?): List<String> {
+                val out = mutableListOf<String>()
+                if (a != null) for (i in 0 until a.length()) (a.opt(i) as? String)?.takeIf { it.isNotEmpty() }?.let(out::add)
+                return out
             }
+            // A lista de permissões do 18.1 (`exposicao`) cobre as mensagens e as
+            // propriedades, e a lista antiga das mensagens continua a ler-se.
+            val exposicao = o.optJSONObject("exposicao")
+            val expostas = (textos(o.optJSONArray("mensagens_expostas")) + textos(exposicao?.optJSONArray("mensagens"))).distinct()
+            val propsExpostas = textos(exposicao?.optJSONArray("propriedades")).take(200)
             // **Só o booleano `true` liga.** A cadeia "true", o número 1 e a
             // ausência deixam desligado: uma configuração meio escrita não pode
             // ligar o rastreio individual, e é a mesma regra do SDK web.
@@ -272,7 +288,7 @@ data class Configuracao(
             }
             return Configuracao(
                 amostragem, nivel, detalhado, expostas.take(200), individual,
-                lista, o.optInt("versao", 0), inqueritos,
+                lista, o.optInt("versao", 0), inqueritos, propsExpostas,
             )
         }
     }

@@ -80,6 +80,23 @@ Nada disto é necessário. Tudo isto melhora a estabilidade da identidade:
 | `android:tag="uxda:mensagem=saldo_insuficiente"` | Dá **chave** a uma mensagem, e aí o texto dela nem sai do dispositivo |
 | `android:id="@+id/erro_saldo"` | O nome do recurso classifica a mensagem sozinho: `erro_`, `aviso_`, `sucesso_` |
 
+## O consentimento, e o que a aplicação lhe passa (fase 18)
+
+```xml
+<meta-data android:name="io.uxda.consentimento" android:value="exigido" />
+```
+
+Com a meta, o SDK não faz nada até a aplicação chamar `Uxda.consentimento(true)`: nem as
+preferências, nem a fila, nem um pedido. `Uxda.consentimento(false)` para já, apaga a fila
+e as preferências do SDK, e guarda só a recusa, que vale no arranque seguinte (ADR 0047).
+
+As propriedades do `Uxda.track(nome, extras)` (agora `Map<String, Any?>`; antes iam todas
+fora em silêncio) e a operação das mensagens passam por `Privacidade.kt`, com as mesmas
+regras do SDK web: chave fora do esquema não sai, texto sai mascarado, e só a lista da
+instituição levanta a máscara, nunca o chão. As listas do esquema chegam aqui geradas
+(`EsquemaGerado.kt`, pelo `./scripts/sync-schema.sh`). Os ensaios estão em
+`PrivacidadeTest.kt`.
+
 ## Mensagens: dê-nos a chave, e o texto não sai do dispositivo
 
 O SDK apanha sozinho o que a aplicação mostra: vistas cujo nome de classe ou de

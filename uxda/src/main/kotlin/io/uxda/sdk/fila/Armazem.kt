@@ -25,6 +25,17 @@ class Armazem(private val ficheiro: File, private val maxEventos: Int = 500,
 
     private var descartados = 0
 
+    /** Selado pela recusa do consentimento (cartão 18.1): nada volta a ser escrito. */
+    @Volatile
+    private var selado = false
+
+    /** Apaga a fila do dispositivo e sela o armazém. É o que a recusa do consentimento faz. */
+    @Synchronized
+    fun esvaziar() {
+        selado = true
+        Seguranca.executar("armazem.esvaziar") { ficheiro.delete() }
+    }
+
     init {
         Seguranca.executar("armazem.init") { ficheiro.parentFile?.mkdirs() }
     }
@@ -32,6 +43,7 @@ class Armazem(private val ficheiro: File, private val maxEventos: Int = 500,
     @Synchronized
     fun juntar(ev: Evento) {
         Seguranca.executar("armazem.juntar") {
+            if (selado) return@executar
             ficheiro.appendText(ev.paraJson().toString() + "\n")
             if (ficheiro.length() > maxBytes) aparar()
         }
@@ -111,6 +123,7 @@ class Armazem(private val ficheiro: File, private val maxEventos: Int = 500,
     }
 
     private fun reescrever(linhas: List<Evento>) {
+        if (selado) return
         val temporario = File(ficheiro.parentFile, ficheiro.name + ".novo")
         temporario.bufferedWriter().use { w ->
             for (ev in linhas) {

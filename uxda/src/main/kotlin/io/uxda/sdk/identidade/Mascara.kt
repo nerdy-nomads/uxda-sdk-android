@@ -32,6 +32,23 @@ object Mascara {
         Regex("""\b\d+\b""") to "{numero}",
     )
 
+    /**
+     * O chão (cartão 18.1): correio e referências longas saem mascarados em qualquer
+     * texto, até nos nomes que a aplicação dá a um ecrã, a um passo, a um evento ou a
+     * uma mensagem. As mesmas regras do `chao` do SDK web.
+     */
+    private val CHAO = listOf(
+        Regex("""[^\s@/|]+@[^\s@/|]+\.[^\s@/|]+""") to "{email}",
+        Regex("""[A-Za-z]{0,3}\d[\dA-Za-z]{7,}""") to "{id}",
+        Regex("""\d{6,}""") to "{id}",
+    )
+
+    fun chao(texto: String): String {
+        var saida = texto
+        for ((re, marcador) in CHAO) saida = re.replace(saida, marcador)
+        return saida
+    }
+
     fun mascarar(texto: String): String {
         var saida = texto
         for ((re, marcador) in REGRAS) saida = re.replace(saida, marcador)
