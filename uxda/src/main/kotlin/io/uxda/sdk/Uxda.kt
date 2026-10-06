@@ -144,7 +144,10 @@ object Uxda {
         val ctx: Context? = app ?: pendente?.first
         if (dado) {
             ctx?.getSharedPreferences(Privacidade.PREFS_CONSENTIMENTO, Context.MODE_PRIVATE)?.edit()?.remove("estado")?.commit()
-            val op = opcoes ?: pendente?.second
+            // As opções do arranque que está à espera mandam sobre as de um arranque
+            // anterior: o `parar()` não as apaga, e um arranque novo pode exigir o que o
+            // velho não exigia.
+            val op = pendente?.second ?: opcoes
             consentimentoEstado = if (op?.consentimento == "implicito") "implicito" else "dado"
             pendente?.let { (a, o) ->
                 pendente = null

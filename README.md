@@ -80,6 +80,16 @@ Nada disto é necessário. Tudo isto melhora a estabilidade da identidade:
 | `android:tag="uxda:mensagem=saldo_insuficiente"` | Dá **chave** a uma mensagem, e aí o texto dela nem sai do dispositivo |
 | `android:id="@+id/erro_saldo"` | O nome do recurso classifica a mensagem sozinho: `erro_`, `aviso_`, `sucesso_` |
 
+## A bateria de fuga cobre toda a captura (cartão 18.2)
+
+`FugaTotalTest.kt` arranca o SDK inteiro contra um servidor HTTP a sério, dentro do ensaio,
+e lê os bytes que ele recebe: atividade, campos, toques (repetidos, no vazio, no
+desativado, em carregamento), mensagem da aplicação, deslocamento, segundo plano e
+regresso, recuo, e a API inteira com segredos lá dentro. Falha se um segredo sair em
+qualquer forma, e **falha se algum dos 23 tipos de evento do esquema não aparecer**. Em
+volume, trezentas pessoas: 1 200 valores pessoais, 1 210 eventos em 10 pedidos, 0 fugas.
+Corre no passo `Bateria de fuga de conteúdo` do CI (`--tests '*Fuga*'`).
+
 ## O consentimento, e o que a aplicação lhe passa (fase 18)
 
 ```xml

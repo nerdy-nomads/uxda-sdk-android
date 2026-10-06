@@ -177,7 +177,7 @@ object ElementoCompose {
         val papel = deSiOuDosPais(no, "Role")?.toString()?.lowercase()
         val rotulo = texto(no)?.let { Mascara.resumoDe(it) }
         return Elemento.Sinais(
-            testid = testTag?.let { "testTag=$it" },
+            testid = testTag?.let { "testTag=${Mascara.chao(it)}" },
             caminho = caminho.takeIf { it.isNotEmpty() }?.joinToString(">")?.take(200),
             rotulo = rotulo,
             destino = null,

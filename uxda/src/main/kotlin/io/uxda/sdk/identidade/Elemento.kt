@@ -58,7 +58,9 @@ object Elemento {
             if (t.startsWith("uxda:")) return t.removePrefix("uxda:").substringBefore("=").let { chave ->
                 if (chave == "destino") null else t.removePrefix("uxda:")
             }
-            return "tag=$t"
+            // O chão vale aqui (cartão 18.2): uma etiqueta escrita com um valor do cliente
+            // lá dentro é um identificador direto na vista. O par do web apanhou-o.
+            return "tag=${Mascara.chao(t)}"
         }
         if (v.id == View.NO_ID) return null
         return try {
@@ -140,6 +142,9 @@ object Elemento {
                 Regex("""^\d+$""").matches(p) -> "{numero}"
                 Regex("""^[0-9a-fA-F-]{16,}$""").matches(p) -> "{id}"
                 Regex("""^[A-Za-z]{0,3}\d[\dA-Za-z]{7,}$""").matches(p) -> "{id}"
+                // E o correio, os contactos e os números com separadores (cartão 18.2):
+                // `/pagar/+244923000111` é uma pessoa no caminho.
+                p.contains('@') || Mascara.chao(p) != p || p.filter { it.isDigit() }.length >= 6 -> "{id}"
                 else -> p
             }
         }
